@@ -685,6 +685,7 @@ function lobbyHTML(v) {
         <button class="btn" data-action="copy">Copy invite link</button>
         ${share}
       </div>
+      ${isLocalHost() ? '<p class="muted small" style="margin-top:12px">You’re hosting from your own computer, so friends join through the public site. Same room, same game.</p>' : ''}
     </section>
     <section class="card">
       <h2>Who’s here <span class="muted small" id="player-count"></span></h2>
@@ -1034,8 +1035,15 @@ function enterGame() {
 }
 
 // ---------- invites ----------
-const inviteUrl = (code) => `${location.origin}${location.pathname}?room=${code}`;
-const prettyUrl = () => (location.host + location.pathname).replace(/index\.html$/, '').replace(/\/$/, '');
+// When the host runs the game on their own computer, "localhost" in a link would point at each
+// friend's own phone. Rooms meet on the PeerJS server whichever copy of the game people open,
+// so local hosts send friends to the public site instead.
+const PUBLIC_URL = 'https://lalitbhardwaj2002.github.io/read-the-room/';
+const isLocalHost = () => location.protocol === 'file:'
+  || ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname) || location.hostname.endsWith('.localhost');
+const joinBase = () => (isLocalHost() ? PUBLIC_URL : `${location.origin}${location.pathname}`);
+const inviteUrl = (code) => `${joinBase()}?room=${code}`;
+const prettyUrl = () => joinBase().replace(/^https?:\/\//, '').replace(/index\.html$/, '').replace(/\/$/, '');
 function setRoomInUrl(code) { history.replaceState(null, '', `${location.pathname}?room=${code}`); }
 
 function drawQr(code) {

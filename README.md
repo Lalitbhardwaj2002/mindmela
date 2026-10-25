@@ -55,6 +55,8 @@ python -m http.server 8000
 
 Then open http://localhost:8000. Open more browser tabs to play against yourself.
 
+When you host from your own computer, the QR code and invite link send friends to the public site (`PUBLIC_URL` in `game.js`), because a `localhost` link would point at their own phone. Rooms connect the same way from either copy, so everyone ends up in your room. If you fork this repo, change `PUBLIC_URL` to your own GitHub Pages address.
+
 ## How the multiplayer works
 
 - **The host's browser is the game server.** It holds everyone's answers in secret, runs the timer and does the scoring.
