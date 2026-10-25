@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Read the Room</title>
+  <meta name="description" content="The party game where you pick a side and guess who's with you. 2–12 players on any phone — no sign-up, no install.">
+  <meta name="theme-color" content="#12091c">
+  <meta property="og:title" content="Read the Room — a live party game">
+  <meta property="og:description" content="Pick a side. Guess who's with you. Join from any phone with a room code.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app" class="app" aria-live="polite"></main>
+
+  <div id="banner" class="banner" role="status" hidden></div>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <div id="confetti" class="confetti" aria-hidden="true"></div>
+
+  <dialog id="help" class="help">
+    <h2>How to play</h2>
+    <ol class="rules">
+      <li><b>A question pops up with two answers.</b> Pick yours.</li>
+      <li><b>Guess how many people picked the same as you</b> (count yourself).</li>
+      <li><b>Exactly right scores 3 points.</b> Off by one scores 1.</li>
+      <li><b>Then everyone sees who picked what.</b> Let the arguments begin.</li>
+    </ol>
+    <p class="muted small">Most points at the end wins, plus awards like <b>The Rebel</b> and <b>Twin Souls</b>.</p>
+    <form method="dialog"><button class="btn primary">Got it</button></form>
+  </dialog>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="questions.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
