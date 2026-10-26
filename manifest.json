@@ -1,0 +1,19 @@
+{
+  "name": "Read the Room — desi party game",
+  "short_name": "Read the Room",
+  "description": "Side chuno. Andaaza lagao kaun tumhare saath hai. 2–12 khiladi, koi bhi phone, sign-up nahi.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#12091c",
+  "theme_color": "#12091c",
+  "lang": "en-IN",
+  "categories": ["games", "entertainment", "social"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

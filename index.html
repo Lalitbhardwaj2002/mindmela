@@ -1,14 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-IN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Read the Room</title>
-  <meta name="description" content="The party game where you pick a side and guess who's with you. 2–12 players on any phone — no sign-up, no install.">
+  <meta name="description" content="Desi party game: side chuno, andaaza lagao kaun tumhare saath hai. 2–12 khiladi, koi bhi phone, sign-up nahi.">
   <meta name="theme-color" content="#12091c">
-  <meta property="og:title" content="Read the Room — a live party game">
-  <meta property="og:description" content="Pick a side. Guess who's with you. Join from any phone with a room code.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>">
+  <meta property="og:title" content="Read the Room — desi party game">
+  <meta property="og:description" content="Side chuno. Andaaza lagao kaun tumhare saath hai. Room code se kisi bhi phone se judo.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Read the Room">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -22,15 +28,15 @@
   <div id="confetti" class="confetti" aria-hidden="true"></div>
 
   <dialog id="help" class="help">
-    <h2>How to play</h2>
+    <h2>Kaise khelein</h2>
     <ol class="rules">
-      <li><b>A question pops up with two answers.</b> Pick yours.</li>
-      <li><b>Guess how many people picked the same as you</b> (count yourself).</li>
-      <li><b>Exactly right scores 3 points.</b> Off by one scores 1.</li>
-      <li><b>Then everyone sees who picked what.</b> Let the arguments begin.</li>
+      <li><b>Ek sawaal aayega, do jawaab ke saath.</b> Apna jawaab chuno.</li>
+      <li><b>Andaaza lagao kitne log tumhare jaisa chunenge</b> (khud ko bhi gino).</li>
+      <li><b>Ekdum sahi andaaza = 3 number.</b> Ek se chooke = 1 number.</li>
+      <li><b>Phir sabko dikhega kisne kya chuna.</b> Ab ho jaaye behes!</li>
     </ol>
-    <p class="muted small">Most points at the end wins, plus awards like <b>The Rebel</b> and <b>Twin Souls</b>.</p>
-    <form method="dialog"><button class="btn primary">Got it</button></form>
+    <p class="muted small">Aakhir mein sabse zyada number waala jeetega. Saath mein inaam bhi: <b>Akela Sher</b>, <b>Dil Se Jude</b>, <b>Ulti Ganga</b>…</p>
+    <form method="dialog"><button class="btn primary">Samajh gaya</button></form>
   </dialog>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>

@@ -1,4 +1,4 @@
-/* Read the Room — a real-time party game.
+/* Read the Room — a real-time party game, in Hinglish.
  *
  * Each question has two answers. Everyone picks a side, then guesses how many
  * people (including themselves) picked the same. Exactly right scores 3,
@@ -29,8 +29,8 @@ const CONFIG = {
   lengths: { quick: 5, standard: 8, long: 12 },
 };
 const POINTS = { exact: 3, close: 1 };
-const MIX = { icon: '🎲', title: 'Mix', blurb: 'A bit of everything' };
-const PACK_ORDER = ['mix', 'family', 'grownups', 'hottakes'];
+const MIX = { icon: '🎲', title: 'Sab Mila Ke', blurb: 'Thoda-thoda sab kuch' };
+const PACK_ORDER = ['mix', 'desi', 'family', 'grownups', 'hottakes'];
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ'; // no I, L or O: easy to read aloud
 const COLORS = ['#ff8fa3', '#ffd166', '#7ae582', '#74b9ff', '#c39bff', '#ffa94d',
   '#5ee7d8', '#f78fd0', '#c0eb75', '#8fd3ff', '#ffc078', '#b6a6ff'];
@@ -48,7 +48,7 @@ const randomCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(M
 const normalizeCode = (s) => String(s || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
 const cleanName = (s) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, 14);
 const initial = (name) => (Array.from(name.trim())[0] || '?').toUpperCase();
-const times = (n) => (n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`);
+const times = (n) => (n === 1 ? 'ek baar' : n === 2 ? 'do baar' : `${n} baar`);
 const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
 function shuffle(list) {
   const a = [...list];
@@ -60,9 +60,9 @@ function shuffle(list) {
 }
 function listNames(names) {
   if (names.length <= 1) return names.join('');
-  if (names.length === 2) return `${names[0]} and ${names[1]}`;
-  if (names.length === 3) return `${names[0]}, ${names[1]} and ${names[2]}`;
-  return `${names[0]}, ${names[1]} and ${names.length - 2} others`;
+  if (names.length === 2) return `${names[0]} aur ${names[1]}`;
+  if (names.length === 3) return `${names[0]}, ${names[1]} aur ${names[2]}`;
+  return `${names[0]}, ${names[1]} aur ${names.length - 2} aur log`;
 }
 
 // ---------- question packs (from questions.js) ----------
@@ -102,7 +102,7 @@ let net = null;     // { role: 'host', code } or the guest connection object
 const host = { peer: null, state: null, answers: {}, conns: new Map(), lastSeen: {}, timer: null, loop: null };
 
 function openRoom(code, saved = null, attempt = 0) {
-  showBusy(saved ? 'Reopening your room…' : 'Opening a room…');
+  showBusy(saved ? 'Tumhara room dobara khul raha hai…' : 'Room khul raha hai…');
   const peer = new Peer(CONFIG.peerPrefix + code, { debug: 1 });
   let opened = false;
 
@@ -156,7 +156,7 @@ function addPlayer(id, rawName) {
   const used = new Set(s.players.map((x) => x.color));
   p = {
     id,
-    name: uniqueName(cleanName(rawName) || 'Guest', id),
+    name: uniqueName(cleanName(rawName) || 'Mehmaan', id),
     color: COLORS.find((c) => !used.has(c)) || COLORS[s.players.length % COLORS.length],
     score: 0,
     connected: true,
@@ -183,7 +183,7 @@ function acceptConnection(conn) {
       const id = String(msg.id || '').slice(0, 64);
       if (!id || id === me.id) return;
       const player = addPlayer(id, msg.name);
-      if (!player) { conn.send({ type: 'rejected', reason: 'This room is full (12 players max).' }); return; }
+      if (!player) { conn.send({ type: 'rejected', reason: 'Room bhar gaya hai (zyada se zyada 12 khiladi).' }); return; }
       pid = id;
       const old = host.conns.get(id);
       host.conns.set(id, conn); // set before closing the old one so its close event is ignored
@@ -380,20 +380,20 @@ function computeAwards(s) {
     return max > 0 && ids.length <= Math.max(2, Math.floor(played.length / 2)) ? { max, ids } : null;
   };
   const reader = leaders('exact');
-  if (reader) awards.push({ icon: '🎯', title: 'Mind Reader', ids: reader.ids, note: `Guessed the room exactly ${times(reader.max)}` });
+  if (reader) awards.push({ icon: '🎯', title: 'Mann Ka Jaasoos', ids: reader.ids, note: `Room ka ekdum sahi andaaza ${times(reader.max)}` });
   const rebel = leaders('minority');
-  if (rebel) awards.push({ icon: '🦄', title: 'The Rebel', ids: rebel.ids, note: `Went against the crowd ${times(rebel.max)}` });
+  if (rebel) awards.push({ icon: '🦁', title: 'Akela Sher', ids: rebel.ids, note: `Bheed ke ulat ${times(rebel.max)} gaye` });
   const sheep = leaders('majority');
-  if (sheep) awards.push({ icon: '🐑', title: 'Crowd Pleaser', ids: sheep.ids, note: `Sided with the majority ${times(sheep.max)}` });
+  if (sheep) awards.push({ icon: '🐑', title: 'Bheed Ka Saathi', ids: sheep.ids, note: `Zyada logon ke saath ${times(sheep.max)} rahe` });
 
   const present = new Set(s.players.map((p) => p.id));
   const pairs = Object.entries(s.pairs).filter(([key, pr]) => pr.total >= 3 && key.split('|').every((id) => present.has(id)));
   if (pairs.length) {
     const rate = ([, pr]) => pr.same / pr.total;
     const twin = pairs.reduce((best, p) => (rate(p) > rate(best) ? p : best));
-    if (rate(twin) >= 0.6) awards.push({ icon: '💞', title: 'Twin Souls', ids: twin[0].split('|'), note: `Agreed on ${twin[1].same} of ${twin[1].total} questions` });
+    if (rate(twin) >= 0.6) awards.push({ icon: '💞', title: 'Dil Se Jude', ids: twin[0].split('|'), note: `${twin[1].total} mein se ${twin[1].same} sawaalon pe ek raay` });
     const opposite = pairs.reduce((worst, p) => (rate(p) < rate(worst) ? p : worst));
-    if (rate(opposite) <= 0.4 && opposite !== twin) awards.push({ icon: '⚡', title: 'Total Opposites', ids: opposite[0].split('|'), note: `Agreed on only ${opposite[1].same} of ${opposite[1].total}` });
+    if (rate(opposite) <= 0.4 && opposite !== twin) awards.push({ icon: '⚡', title: 'Ulti Ganga', ids: opposite[0].split('|'), note: `${opposite[1].total} mein se sirf ${opposite[1].same} pe ek raay` });
   }
   return awards;
 }
@@ -460,7 +460,7 @@ function closeRoom() {
 // Guest: connects to the host and shows whatever state it sends
 // =====================================================================
 function joinRoom(code) {
-  showBusy(`Joining room ${code}…`);
+  showBusy(`Room ${code} mein ja rahe hain…`);
   const g = {
     role: 'guest', code, peer: null, conn: null,
     startedAt: Date.now(), lastHeard: 0, connected: false,
@@ -481,7 +481,7 @@ function makeGuestPeer(g) {
   peer.on('error', (err) => {
     if (net !== g || g.peer !== peer) return;
     if (g.connected) return; // mid-game hiccup: the reconnect loop keeps trying
-    if (err.type === 'peer-unavailable') failGuest(`Room ${g.code} doesn’t exist. Double-check the code with whoever invited you.`);
+    if (err.type === 'peer-unavailable') failGuest(`Room ${g.code} nahi mila. Bulaane waale se code dobara poochho.`);
     else failGuest(networkHelp(err));
   });
 }
@@ -503,7 +503,7 @@ function connectToHost(g) {
     } else if (msg.type === 'rejected') {
       failGuest(msg.reason);
     } else if (msg.type === 'closed') {
-      failGuest('The host ended the game. Thanks for playing!', '👋');
+      failGuest('Host ne game khatam kar diya. Khelne ke liye shukriya!', '👋');
     }
   });
   const lost = () => { if (net === g && g.conn === conn && g.connected) lostHost(g); };
@@ -517,7 +517,7 @@ function guestWatchdog() {
   const now = Date.now();
   if (!g.connected) {
     if (now - g.startedAt > CONFIG.connectTimeoutMs) {
-      failGuest('Couldn’t connect to the room. Some school or office Wi-Fi blocks live games — try switching to mobile data.');
+      failGuest('Room se jud nahi paaye. School ya office ka Wi-Fi kabhi-kabhi live game rok deta hai — mobile data se try karo.');
     }
     return;
   }
@@ -528,14 +528,14 @@ function guestWatchdog() {
 function lostHost(g) {
   if (g.reconnectingSince) return;
   g.reconnectingSince = Date.now();
-  setBanner('Connection lost — reconnecting…');
+  setBanner('Connection toot gaya — dobara jod rahe hain…');
   retryHost(g);
 }
 
 function retryHost(g) {
   if (net !== g || !g.reconnectingSince) return;
   if (Date.now() - g.reconnectingSince > CONFIG.reconnectForMs) {
-    failGuest('Lost the connection to the host, so the game has ended.', '🌙');
+    failGuest('Host se connection toot gaya, isliye game khatam ho gaya.', '🌙');
     return;
   }
   if (g.peer.destroyed) makeGuestPeer(g);
@@ -590,13 +590,13 @@ function forgetRoom() {
 
 function networkHelp(err) {
   switch (err && err.type) {
-    case 'browser-incompatible': return 'This browser can’t run live games. Try a recent Chrome, Safari, Firefox or Edge.';
-    case 'unavailable-id': return 'Couldn’t reopen that room. Start a new one from the home screen.';
+    case 'browser-incompatible': return 'Is browser mein live game nahi chalta. Naya Chrome, Safari, Firefox ya Edge try karo.';
+    case 'unavailable-id': return 'Wo room dobara nahi khul paaya. Home screen se naya room banao.';
     case 'network':
     case 'socket-error':
     case 'socket-closed':
-    case 'server-error': return 'Couldn’t reach the game server. Check your internet connection and try again.';
-    default: return `Something went wrong (${(err && err.type) || 'unknown error'}). Please try again.`;
+    case 'server-error': return 'Game server tak nahi pahunch paaye. Internet check karo aur dobara try karo.';
+    default: return `Kuch gadbad ho gayi (${(err && err.type) || 'pata nahi kya'}). Dobara try karo.`;
   }
 }
 
@@ -646,11 +646,11 @@ function render() {
 function topBar(v) {
   return `
     <header class="topbar">
-      <button class="chip" data-action="copy" title="Copy invite link">Room<b>${esc(v.code)}</b></button>
+      <button class="chip" data-action="copy" title="Invite link copy karo">Room<b>${esc(v.code)}</b></button>
       <div class="topbar-right">
-        <button class="icon-btn" data-action="help" aria-label="How to play">?</button>
-        <button class="icon-btn" data-action="mute" aria-label="Toggle sound">${sfx.muted ? '🔇' : '🔊'}</button>
-        <button class="icon-btn" data-action="leave" aria-label="Leave game">✕</button>
+        <button class="icon-btn" data-action="help" aria-label="Kaise khelein">?</button>
+        <button class="icon-btn" data-action="mute" aria-label="Awaaz on/off">${sfx.muted ? '🔇' : '🔊'}</button>
+        <button class="icon-btn" data-action="leave" aria-label="Game chhodo">✕</button>
       </div>
     </header>`;
 }
@@ -664,40 +664,40 @@ function stageHTML(v, amHost) {
 
 const RULES_HTML = `
   <ol class="rules">
-    <li><b>A question pops up with two answers.</b> Pick yours.</li>
-    <li><b>Guess how many people picked the same as you</b> (count yourself).</li>
-    <li><b>Exactly right scores ${POINTS.exact} points.</b> Off by one scores ${POINTS.close}.</li>
-    <li><b>Then everyone sees who picked what.</b> Let the arguments begin.</li>
+    <li><b>Ek sawaal aayega, do jawaab ke saath.</b> Apna jawaab chuno.</li>
+    <li><b>Andaaza lagao kitne log tumhare jaisa chunenge</b> (khud ko bhi gino).</li>
+    <li><b>Ekdum sahi andaaza = ${POINTS.exact} number.</b> Ek se chooke = ${POINTS.close} number.</li>
+    <li><b>Phir sabko dikhega kisne kya chuna.</b> Ab ho jaaye behes!</li>
   </ol>`;
 
-const hostName = (v) => (v.players.find((p) => p.id === v.hostId) || {}).name || 'the host';
+const hostName = (v) => (v.players.find((p) => p.id === v.hostId) || {}).name || 'host';
 const chip = (p, extra = '', prefix = '') => `<span class="pchip ${p.id === me.id ? 'me' : ''} ${extra}" style="--c:${p.color}">${prefix}${esc(p.name)}</span>`;
 
 function lobbyHTML(v) {
-  const share = navigator.share ? '<button class="btn" data-action="share">Share…</button>' : '';
+  const share = navigator.share ? '<button class="btn" data-action="share">Share karo</button>' : '';
   return `
     <section class="card lobby">
       <p class="eyebrow">Room code</p>
       <div class="big-code">${esc(v.code)}</div>
-      <p class="muted small">Friends open <b>${esc(prettyUrl())}</b> and type this code — or scan:</p>
+      <p class="muted small">Dost <b>${esc(prettyUrl())}</b> kholein aur ye code daalein — ya scan karein:</p>
       <div class="qr" id="qr" hidden></div>
       <div class="row">
-        <button class="btn" data-action="copy">Copy invite link</button>
+        <button class="btn" data-action="copy">Invite link copy karo</button>
         ${share}
       </div>
-      ${isLocalHost() ? '<p class="muted small" style="margin-top:12px">You’re hosting from your own computer, so friends join through the public site. Same room, same game.</p>' : ''}
+      ${isLocalHost() ? '<p class="muted small" style="margin-top:12px">Tum apne computer se host kar rahe ho, isliye dost public site se judenge. Room wahi, game wahi.</p>' : ''}
     </section>
     <section class="card">
-      <h2>Who’s here <span class="muted small" id="player-count"></span></h2>
+      <h2>Kaun-kaun aaya hai <span class="muted small" id="player-count"></span></h2>
       <ul class="player-list" id="lobby-players"></ul>
       <div id="start-area"></div>
     </section>
     <section class="card">
-      <h2>Questions</h2>
+      <h2>Sawaal kaunse?</h2>
       <div id="settings"></div>
     </section>
     <section class="card">
-      <h2>How to play</h2>
+      <h2>Kaise khelein</h2>
       ${RULES_HTML}
     </section>`;
 }
@@ -714,12 +714,12 @@ function settingsHTML(v, amHost) {
       </button>`;
   }).join('');
   const lengths = Object.entries(CONFIG.lengths).map(([k, n]) =>
-    `<button class="seg ${v.length === k ? 'on' : ''}" ${amHost ? `data-action="length" data-length="${k}"` : 'disabled'}>${n} questions</button>`).join('');
+    `<button class="seg ${v.length === k ? 'on' : ''}" ${amHost ? `data-action="length" data-length="${k}"` : 'disabled'}>${n} sawaal</button>`).join('');
   return `
     <div class="packs">${packs}</div>
-    <p class="field-label">Game length</p>
+    <p class="field-label">Kitne sawaal?</p>
     <div class="segs">${lengths}</div>
-    ${amHost ? '' : `<p class="muted small center" style="margin-top:12px">${esc(hostName(v))} picks the questions.</p>`}`;
+    ${amHost ? '' : `<p class="muted small center" style="margin-top:12px">Sawaal ${esc(hostName(v))} chunenge.</p>`}`;
 }
 
 function answerHTML(v) {
@@ -730,21 +730,21 @@ function answerHTML(v) {
     </button>`;
   return `
     <section class="q-head">
-      <p class="eyebrow">Question ${v.round} of ${v.totalRounds}</p>
+      <p class="eyebrow">Sawaal ${v.round} / ${v.totalRounds}</p>
       <div class="timer" id="timer"><div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div><span class="secs" data-countdown></span></div>
     </section>
     <section class="prompt">
       <h1 class="prompt-q">${esc(p.q)}</h1>
-      <div class="options">${option('a', p.a)}<span class="or">or</span>${option('b', p.b)}</div>
+      <div class="options">${option('a', p.a)}<span class="or">ya</span>${option('b', p.b)}</div>
     </section>
     <section class="guess" id="guess">
-      <h2>How many will pick the same as you?</h2>
+      <h2>Kitne log tumhare saath honge?</h2>
       <div class="guess-row" id="guess-row"></div>
       <p class="muted small" id="guess-legend"></p>
     </section>
     <p class="lock-note" id="lock-note"></p>
     <div class="status" id="answer-status"></div>
-    <section class="card"><h2>Scores</h2><div class="scores" id="scores"></div></section>`;
+    <section class="card"><h2>Score</h2><div class="scores" id="scores"></div></section>`;
 }
 
 function revealHTML(v, amHost) {
@@ -753,15 +753,15 @@ function revealHTML(v, amHost) {
   const total = L.counts.a + L.counts.b;
   const pa = total ? (L.counts.a / total) * 100 : 50;
   const names = (side) => v.players.filter((pl) => L.answers[pl.id] && L.answers[pl.id].side === side).map((pl) => chip(pl)).join('')
-    || '<span class="muted small">nobody</span>';
+    || '<span class="muted small">koi nahi</span>';
   const r = myResult(v);
-  const label = v.final ? 'See final results' : 'Next question';
+  const label = v.final ? 'Final natija dekho' : 'Agla sawaal';
   const next = amHost
     ? `<button class="btn primary big" data-action="next">${label}</button>
-       <p class="muted small">Talk it out! Moving on by itself in <span data-countdown></span>s</p>`
-    : `<p class="muted">Talk it out! ${esc(hostName(v))} will move on soon<span class="dots"></span></p>`;
+       <p class="muted small">Ab behes karo! <span data-countdown></span> second mein apne aap aage badhega</p>`
+    : `<p class="muted">Ab behes karo! ${esc(hostName(v))} jaldi aage badhayenge<span class="dots"></span></p>`;
   return `
-    <section class="q-head"><p class="eyebrow">Question ${v.round} of ${v.totalRounds} · results</p></section>
+    <section class="q-head"><p class="eyebrow">Sawaal ${v.round} / ${v.totalRounds} · natija</p></section>
     <section class="prompt small"><h1 class="prompt-q">${esc(p.q)}</h1></section>
     <section class="split">
       <div class="split-labels"><span class="lab-a">${esc(p.a.e)} ${esc(p.a.t)}</span><span class="lab-b">${esc(p.b.e)} ${esc(p.b.t)}</span></div>
@@ -775,14 +775,14 @@ function revealHTML(v, amHost) {
     </section>
     <section class="result ${r.mood}"><h2>${esc(r.title)}</h2><p>${esc(r.sub)}</p></section>
     <div class="next-area">${next}</div>
-    <section class="card"><h2>Scores</h2><div class="scores" id="scores"></div></section>`;
+    <section class="card"><h2>Score</h2><div class="scores" id="scores"></div></section>`;
 }
 
 function overHTML(v, amHost) {
   const winners = v.players.filter((p) => v.winners.includes(p.id));
-  let title = 'Game over!';
-  if (winners.length === 1) title = winners[0].id === me.id ? 'You read the room best!' : `${winners[0].name} read the room best!`;
-  else if (winners.length > 1) title = `It’s a tie: ${listNames(winners.map((p) => (p.id === me.id ? 'you' : p.name)))}!`;
+  let title = 'Game khatam!';
+  if (winners.length === 1) title = winners[0].id === me.id ? 'Tumne room sabse achha padha!' : `${winners[0].name} ne room sabse achha padha!`;
+  else if (winners.length > 1) title = `Barabari ka mukaabla: ${listNames(winners.map((p) => (p.id === me.id ? 'tum' : p.name)))}!`;
   const awards = v.awards.map((a, i) => {
     const who = a.ids.map((id) => v.players.find((p) => p.id === id)).filter(Boolean);
     if (!who.length) return '';
@@ -797,47 +797,47 @@ function overHTML(v, amHost) {
       </div>`;
   }).join('');
   const next = amHost
-    ? '<button class="btn primary big" data-action="again">Play again</button>'
-    : `<p class="waiting-note">Waiting for ${esc(hostName(v))} to start a new game<span class="dots"></span></p>`;
+    ? '<button class="btn primary big" data-action="again">Phir se khelo</button>'
+    : `<p class="waiting-note">${esc(hostName(v))} naya game shuru karenge<span class="dots"></span></p>`;
   return `
     <section class="winner">
       <div class="trophy">🏆</div>
-      <p class="eyebrow">Game over</p>
+      <p class="eyebrow">Game khatam</p>
       <h1>${esc(title)}</h1>
     </section>
     ${awards ? `<section class="awards">${awards}</section>` : ''}
-    <section class="card"><h2>Final scores</h2><div class="scores" id="scores"></div></section>
+    <section class="card"><h2>Final score</h2><div class="scores" id="scores"></div></section>
     <div class="next-area">${next}</div>`;
 }
 
 function roomQuip(v) {
   const { counts, answers, prompt } = v.last;
   const total = counts.a + counts.b;
-  if (!total) return 'Nobody answered! 😴';
-  if (total === 1) return 'A room of one. Bold. 😅';
-  if (!counts.a || !counts.b) return 'Unanimous! The whole room agrees. 🤝';
-  if (counts.a === counts.b) return 'A perfect split. Fight it out! ⚖️';
+  if (!total) return 'Kisi ne jawaab hi nahi diya! 😴';
+  if (total === 1) return 'Akele hi khel rahe ho? Himmat hai! 😅';
+  if (!counts.a || !counts.b) return 'Ek raay! Poora room ek taraf. 🤝';
+  if (counts.a === counts.b) return 'Barabar ki takkar. Ab ho jaaye behes! ⚖️';
   const loneSide = counts.a === 1 ? 'a' : counts.b === 1 ? 'b' : null;
   if (loneSide && total >= 3) {
     const lone = v.players.find((p) => answers[p.id] && answers[p.id].side === loneSide);
-    if (lone && lone.id === me.id) return 'You stand alone. Explain yourself! 🦄';
-    return `${lone ? lone.name : 'Someone'} stands alone. Explain yourself! 🦄`;
+    if (lone && lone.id === me.id) return 'Tum akele pad gaye. Ab samjhao sabko! 🦁';
+    return `${lone ? lone.name : 'Koi'} akele pad gaye. Ab samjhao sabko! 🦁`;
   }
-  return `The room has spoken: ${counts.a > counts.b ? prompt.a.t : prompt.b.t}.`;
+  return `Room ka faisla: ${counts.a > counts.b ? prompt.a.t : prompt.b.t}.`;
 }
 
 function myResult(v) {
   const L = v.last;
-  if (!L || !has(L.points, me.id)) return { mood: 'miss', title: 'Welcome!', sub: 'You’ll play from the next question.' };
+  if (!L || !has(L.points, me.id)) return { mood: 'miss', title: 'Swagat hai!', sub: 'Agle sawaal se tum bhi khelna.' };
   const a = L.answers[me.id];
-  if (!a) return { mood: 'miss', title: 'You missed this one', sub: `You have ${CONFIG.answerSeconds} seconds to answer each question.` };
+  if (!a) return { mood: 'miss', title: 'Ye wala chhoot gaya', sub: `Har sawaal ke liye ${CONFIG.answerSeconds} second milte hain.` };
   const same = L.counts[a.side];
-  const who = same === 1 ? 'just you' : `${same} of you`;
-  if (!a.guess) return { mood: 'miss', title: 'No guess, no points', sub: `You picked a side but didn’t guess. It was ${who}.` };
+  const who = same === 1 ? 'sirf tum the' : `${same} log the`;
+  if (!a.guess) return { mood: 'miss', title: 'Andaaza nahi, toh number nahi', sub: `Side chuni par andaaza nahi lagaaya. Tumhari taraf ${who}.` };
   const pts = L.points[me.id] || 0;
-  if (pts === POINTS.exact) return { mood: 'exact', title: `🎯 Nailed it! +${pts}`, sub: `You guessed ${a.guess}, and it was ${same === 1 ? 'just you' : `exactly ${same} of you`}.` };
-  if (pts === POINTS.close) return { mood: 'close', title: `So close! +${pts}`, sub: `You guessed ${a.guess}. It was ${who}.` };
-  return { mood: 'miss', title: 'You misread the room!', sub: `You guessed ${a.guess}. It was ${who}.` };
+  if (pts === POINTS.exact) return { mood: 'exact', title: `🎯 Ekdum sahi pakda! +${pts}`, sub: `Tumne ${a.guess} kaha, aur tumhari taraf ${same === 1 ? 'sirf tum hi the' : `poore ${same} log the`}.` };
+  if (pts === POINTS.close) return { mood: 'close', title: `Bas thoda sa chooke! +${pts}`, sub: `Tumne ${a.guess} kaha. Tumhari taraf ${who}.` };
+  return { mood: 'miss', title: 'Room nahi padh paaye!', sub: `Tumne ${a.guess} kaha. Tumhari taraf ${who}.` };
 }
 
 // Parts of the screen that change without a phase change: only touched when their content differs.
@@ -849,20 +849,20 @@ function updateRegions(v, amHost) {
       <li class="player" style="--c:${p.color}">
         <span class="avatar">${esc(initial(p.name))}</span>
         <span class="pname">${esc(p.name)}</span>
-        ${p.id === v.hostId ? '<span class="tag">host</span>' : p.id === me.id ? '<span class="tag">you</span>' : ''}
+        ${p.id === v.hostId ? '<span class="tag">host</span>' : p.id === me.id ? '<span class="tag">tum</span>' : ''}
       </li>`).join(''));
     setHTML('settings', settingsHTML(v, amHost));
     setHTML('start-area', amHost
-      ? `<button class="btn primary big" data-action="start" ${n < 2 ? 'disabled' : ''}>Start game</button>
-         <p class="muted small center" style="margin-top:8px">${n < 2 ? 'Waiting for at least one more player… (best with 4 or more)' : `${n} players ready. Late arrivals can join mid-game.`}</p>`
-      : `<p class="waiting-note">Waiting for ${esc(hostName(v))} to start the game<span class="dots"></span></p>`);
+      ? `<button class="btn primary big" data-action="start" ${n < 2 ? 'disabled' : ''}>Game shuru karo</button>
+         <p class="muted small center" style="margin-top:8px">${n < 2 ? 'Kam se kam ek aur khiladi ka intezaar… (4 ya zyada mein asli maza)' : `${n} khiladi taiyaar. Der se aane waale beech mein bhi jud sakte hain.`}</p>`
+      : `<p class="waiting-note">${esc(hostName(v))} game shuru karenge, intezaar karo<span class="dots"></span></p>`);
   }
   if (v.phase === 'answer') {
     updateAnswerUI(v);
     const active = v.players.filter((p) => p.connected);
     const done = active.filter((p) => p.done).length;
     setHTML('answer-status', `
-      <p class="status-line"><b>${done}/${active.length}</b> locked in</p>
+      <p class="status-line"><b>${done}/${active.length}</b> ne lock kiya</p>
       <div class="chips">${active.map((p) => chip(p, p.done ? '' : 'waiting', p.done ? '✓ ' : '')).join('')}</div>`);
   }
   setHTML('scores', scoresHTML(v));
@@ -883,7 +883,7 @@ function updateAnswerUI(v) {
     row.style.setProperty('--n', String(Math.min(n, 6)));
     row.innerHTML = Array.from({ length: n }, (_, i) => i + 1)
       .map((k) => `<button class="g" data-action="guess" data-guess="${k}" aria-pressed="false">${k}</button>`).join('');
-    setText('guess-legend', `1 = just you · ${n} = everyone`);
+    setText('guess-legend', `1 = sirf tum · ${n} = sab log`);
   }
   const ans = currentAnswer(v);
   document.querySelectorAll('.option').forEach((b) => {
@@ -906,10 +906,10 @@ function updateAnswerUI(v) {
   if (note) {
     const done = !!(ans.side && ans.guess);
     note.classList.toggle('done', done);
-    note.textContent = done ? '✓ Locked in. You can still change your mind until time runs out.'
-      : ans.side ? 'Now guess how many will pick the same as you.'
-        : ans.guess ? 'Now pick a side.'
-          : 'Pick a side, then make your guess.';
+    note.textContent = done ? '✓ Lock ho gaya. Time khatam hone tak badal sakte ho.'
+      : ans.side ? 'Ab andaaza lagao kitne log tumhare saath honge.'
+        : ans.guess ? 'Ab apni side chuno.'
+          : 'Pehle side chuno, phir andaaza lagao.';
   }
 }
 
@@ -921,7 +921,7 @@ function scoresHTML(v) {
     const gain = showGain && v.phase === 'reveal' ? (v.last.points[p.id] || 0) : 0;
     const to = p.score / top;
     const from = (p.score - gain) / top;
-    const tags = (p.id === me.id ? ' <em>you</em>' : '') + (p.connected ? '' : ' <em>💤 away</em>');
+    const tags = (p.id === me.id ? ' <em>tum</em>' : '') + (p.connected ? '' : ' <em>💤 gayab</em>');
     return `
       <div class="score-row ${p.connected ? '' : 'offline'}">
         <span class="dot" style="--c:${p.color}"></span>
@@ -968,42 +968,43 @@ function renderHome() {
   ui.stageKey = '';
   const invited = normalizeCode(new URLSearchParams(location.search).get('room'));
   const nameField = `
-    <label class="field" id="name-field"><span>Your name</span>
-      <input id="name" name="name" maxlength="14" autocomplete="nickname" placeholder="e.g. Priya" value="${esc(me.name)}" enterkeyhint="go">
+    <label class="field" id="name-field"><span>Tumhara naam</span>
+      <input id="name" name="name" maxlength="14" autocomplete="nickname" placeholder="jaise Golu" value="${esc(me.name)}" enterkeyhint="go">
     </label>`;
   const actions = invited
     ? `<form class="stack" data-form="join">
-         <p class="eyebrow center">You’re invited to room</p>
+         <p class="eyebrow center">Tumhe is room mein bulaaya hai</p>
          <div class="big-code center" style="font-size:48px">${esc(invited)}</div>
          <input type="hidden" name="code" value="${esc(invited)}">
          ${nameField}
-         <button class="btn primary big">Join the game</button>
+         <button class="btn primary big">Game mein aao</button>
        </form>
-       <button class="btn link" data-action="clear-invite">Create my own room instead</button>`
+       <button class="btn link" data-action="clear-invite">Apna room banao</button>`
     : `<form class="stack" data-form="create">
          ${nameField}
-         <button class="btn primary big">Create a room</button>
+         <button class="btn primary big">Naya room banao</button>
        </form>
-       <div class="divider">or join friends</div>
+       <div class="divider">ya dosto ke room mein jao</div>
        <form class="join-row" data-form="join">
          <label class="field" id="code-field"><span>Room code</span>
            <input name="code" class="code-input" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" enterkeyhint="go">
          </label>
-         <button class="btn">Join</button>
+         <button class="btn">Jao</button>
        </form>`;
   app.innerHTML = `
     <section class="hero">
       <h1 class="title">Read the <em>Room</em></h1>
-      <p class="tagline">Pick a side. Guess who’s with you.</p>
-      <div class="demo" aria-hidden="true"><span class="da">🍕 Pizza forever</span><span class="dor">or</span><span class="db">🌮 Tacos forever</span></div>
+      <p class="tagline">Side chuno. Andaaza lagao kaun tumhare saath hai.</p>
+      <div class="demo" aria-hidden="true"><span class="da">☕ Kadak chai</span><span class="dor">ya</span><span class="db">🥛 Malaai maar ke</span></div>
     </section>
+    <div id="install" class="install-area">${installHTML()}</div>
     <section class="card stack">${actions}</section>
     <section class="how">
-      <div><b>🤔</b>Pick your answer to a fun dilemma</div>
-      <div><b>🔮</b>Guess how many agree with you</div>
-      <div><b>😱</b>See who picked what</div>
+      <div><b>🤔</b>Mazedaar sawaal ka jawaab chuno</div>
+      <div><b>🔮</b>Andaaza lagao kitne tumhare saath</div>
+      <div><b>😱</b>Dekho kisne kya chuna</div>
     </section>
-    <p class="muted small center">2–${CONFIG.maxPlayers} players · ages 8 to 80 · any phone · no sign-up</p>`;
+    <p class="muted small center">2–${CONFIG.maxPlayers} khiladi · 8 se 80 saal · koi bhi phone · sign-up nahi</p>`;
 }
 
 function showBusy(message) {
@@ -1011,9 +1012,9 @@ function showBusy(message) {
   ui.stageKey = '';
   app.innerHTML = `
     <div class="screen-msg">
-      <div class="spinner" role="progressbar" aria-label="Loading"></div>
+      <div class="spinner" role="progressbar" aria-label="Ruko"></div>
       <p>${esc(message)}</p>
-      <button class="btn link" data-action="home">Cancel</button>
+      <button class="btn link" data-action="home">Rehne do, waapas chalo</button>
     </div>`;
 }
 
@@ -1024,7 +1025,7 @@ function showError(message, emoji = '🫣') {
     <div class="screen-msg">
       <div class="emoji">${emoji}</div>
       <p>${esc(message)}</p>
-      <button class="btn primary" data-action="home">Back to start</button>
+      <button class="btn primary" data-action="home">Shuru se karo</button>
     </div>`;
 }
 
@@ -1053,7 +1054,7 @@ function drawQr(code) {
     const qr = qrcode(0, 'M');
     qr.addData(inviteUrl(code));
     qr.make();
-    el.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true, alt: `QR code to join room ${code}` });
+    el.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true, alt: `Room ${code} mein aane ka QR code` });
     el.hidden = false;
   } catch (e) { console.warn('QR failed', e); }
 }
@@ -1062,10 +1063,41 @@ async function copyInvite() {
   const url = inviteUrl(ui.view.code);
   try {
     await navigator.clipboard.writeText(url);
-    toast('Invite link copied!');
+    toast('Invite link copy ho gaya!');
   } catch {
-    window.prompt('Copy this invite link:', url);
+    window.prompt('Ye invite link copy karo:', url);
   }
+}
+
+// ---------- install as an app ----------
+// Chrome and Edge on Android/desktop offer a one-tap install; iPhones install from Safari's Share menu.
+let installPrompt = null;
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+function installHTML() {
+  if (isStandalone()) return '';
+  if (installPrompt) return '<button class="btn install" data-action="install">📲 App install karo</button>';
+  if (isIos()) return '<p class="install-hint">📲 App ki tarah chalao: Safari mein <b>Share</b> dabao, phir <b>"Add to Home Screen"</b>.</p>';
+  return '';
+}
+function renderInstall() {
+  const el = document.getElementById('install');
+  if (el) el.innerHTML = installHTML();
+}
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  renderInstall();
+});
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  renderInstall();
+  toast('App install ho gaya! 🎉');
+});
+
+if ('serviceWorker' in navigator && window.isSecureContext && location.protocol !== 'file:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch((e) => console.warn('Service worker failed', e)));
 }
 
 // ---------- events ----------
@@ -1091,13 +1123,20 @@ const actions = {
   copy: copyInvite,
   share() {
     const code = ui.view.code;
-    navigator.share({ title: 'Read the Room', text: `Join my Read the Room game! Room code ${code}`, url: inviteUrl(code) }).catch(() => {});
+    navigator.share({ title: 'Read the Room', text: `Mere Read the Room game mein aao! Room code ${code}`, url: inviteUrl(code) }).catch(() => {});
+  },
+  async install() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice.catch(() => {});
+    installPrompt = null;
+    renderInstall();
   },
   help: () => $('#help').showModal(),
   mute(btn) { btn.textContent = sfx.toggle() ? '🔇' : '🔊'; },
   leave() {
     const amHost = net && net.role === 'host';
-    if (window.confirm(amHost ? 'Leave and end the game for everyone?' : 'Leave this game?')) leaveGame();
+    if (window.confirm(amHost ? 'Game chhodoge? Sabke liye khatam ho jaayega.' : 'Game chhodna hai?')) leaveGame();
   },
   home: () => leaveGame(),
   'clear-invite'() { history.replaceState(null, '', location.pathname); renderHome(); },
@@ -1231,10 +1270,14 @@ const sfx = (() => {
 document.addEventListener('pointerdown', () => sfx.unlock(), { passive: true });
 
 // ---------- start ----------
+// A saved game from an older version may point at questions that no longer exist.
+const savedGameUsable = (saved) => !!(saved && saved.state)
+  && [saved.state.prompt, saved.state.last && saved.state.last.prompt].every((id) => !id || getPrompt(id));
+
 function boot() {
   requestAnimationFrame(frame);
   if (typeof Peer === 'undefined' || typeof PACKS === 'undefined') {
-    showError('The game didn’t load properly. Check your internet connection and refresh the page.');
+    showError('Game theek se load nahi hua. Internet check karo aur page refresh karo.');
     return;
   }
   const code = normalizeCode(new URLSearchParams(location.search).get('room'));
@@ -1242,7 +1285,7 @@ function boot() {
   if (code && role === 'host') {
     let saved = null;
     try { saved = JSON.parse(store.get('sessionStorage', 'rtr-host') || 'null'); } catch { /* corrupt: start fresh */ }
-    if (saved && saved.state && saved.state.code === code) { openRoom(code, saved); return; }
+    if (savedGameUsable(saved) && saved.state.code === code) { openRoom(code, saved); return; }
   }
   if (code && role === 'guest' && me.name) { joinRoom(code); return; }
   renderHome();
