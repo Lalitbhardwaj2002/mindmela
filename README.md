@@ -13,35 +13,54 @@ Mindmela is a free live party game for 2–12 players. The name means a *mela* (
 3. If your guess is exactly right, you score **3 points**. If it's off by one, you score **1**.
 4. Everyone then sees who picked what, and the arguing starts.
 
-Play 5, 10 or 20 questions, or choose **∞ Endless** and keep going until the host ends it. At the end, players get awards:
+Choose a game length: **⚡ Quick (5)**, **🎯 Classic (10)**, **🔥 Long (20)** or **🏆 Marathon (50)**.
 
-| Award | Who gets it |
+**Every round has a label** above the question, so you know what's coming: 🍛 Foodie Round, 🤪 Weird Round, ⭐ Cricketer Round, and so on.
+
+**When someone reads the room perfectly**, Laddoo, the game's dancing mascot, pops up to cheer them by name.
+
+**Every player has a live tag** next to their name that changes each round: 👑 Leader, 🔥 On fire ×3, 🎯 Bullseye, 🦄 Lone wolf, 🤏 So close, 🐑 With the crowd, 🌶️ Spicy pick, ⚖️ Split vote or 😴 Snoozed.
+
+**At the end, every player gets their own tag card**, ranked with medals:
+
+| Tag | Who gets it |
 |---|---|
 | 🎯 Mind Reader | Guessed the room exactly the most times |
-| 🦄 The Rebel | Went against the crowd the most |
-| 🐑 Crowd Pleaser | Sided with the majority the most |
-| 💞 Twin Souls | The two players who agreed most often |
-| ⚡ Total Opposites | The two players who agreed least |
+| 🔥 Hot Streak | The longest run of perfect guesses |
+| 🦄 Lone Wolf | Went against the crowd the most |
+| 💞 Twin Soul | The two players who agreed most often |
+| ⚡ Total Opposite | The two players who agreed least |
+| 🐑 Crowd Favourite | Sided with the crowd the most |
+| 🤏 Almost There | Missed by one the most |
+| 🎲 Wild Guesser | Made the most bold guesses that missed |
+| 🐢 Fashionably Late | Let the timer run out the most |
 
-## 9,236 questions, and they keep changing
+Anyone left over gets a fun one: 🌟 Steady Star, 😄 Good Vibes, 🍿 Entertainer, 🧘 Zen Master, 🎉 Party Starter and more.
+
+## 11 sections, 11,713 questions
+
+| Section | Questions |
+|---|---|
+| 🎲 Mix (everything) | 11,713 |
+| 🏡 Family | 8,930 |
+| 🌾 Desi Bulandshahr | 6,927 |
+| 🌶️ Hot Takes | 6,638 |
+| 🕰️ Meerut Side | 6,291 |
+| 💸 Grown-ups | 3,671 |
+| 💘 Pyaar-Vyaar | 2,189 |
+| 🏫 School Days | 2,186 |
+| 🎬 Bollywood Masala | 1,265 |
+| 🤪 Ajeeb Dilemmas | 1,220 |
+| 🏏 Cricket Crazy | 1,079 |
 
 Questions come from two places in `questions.js`:
 
-- **Hand-written questions (116).** Examples: *"Har shaadi mein naraaz kaun hota hai? Phufa ji or Jija ji"*, *"Ganna mill ka season… Trolley se ganna kheencho or Na bhai, daant padegi"*.
-- **A question generator (17 categories).** Each category has question frames and a pool of desi answers: khaana, meetha, shaadi, rishtedaar, sawaari, ilaaka (Ghanta Ghar, Abu Lane, Kala Aam, Khurja…), and more. The game pairs two answers from one pool under one frame, for example *"Shaadi ki daawat mein pehle kis stall pe? 🥙 Bedmi poori or 💧 Golgappe"*. That makes 9,236 different questions in the Mix pack.
+- **Hand-written questions (214)**, 20–30 per section. Examples: *"Har shaadi mein naraaz kaun hota hai? Phufa ji or Jija ji"*, *"Sabse khatarnaak villain kaun? Gabbar Singh or Mogambo"*, *"Pairon ki jagah… Skates or Spring"*.
+- **A question generator (24 categories).** Each category has a round label, question frames and a pool of desi answers. The game pairs two answers from one pool under one frame, for example *"Shaadi ki daawat mein pehle kis stall pe? 🥙 Bedmi poori or 💧 Golgappe"*.
 
-**Champion rounds use the room's own answers.** When the room clearly picks one answer, that winner often comes back under the same question against a new challenger: *"🏆 Pichhla vijeta waapas! Har baat pe naraaz kaun hota hai? Mama ji or Tau ji"*. The result says whether it's *still the champion* or there's a *new champion*.
+**No similar questions back to back.** The same category never comes up two rounds in a row, and no question or answer repeats within 4 rounds. A room never sees the same pair of answers twice until it has used up the section.
 
-A room never sees the same pair of answers twice until it has used up the pack. To add more questions, add answers to any pool in `questions.js`. Every new answer creates dozens of new questions.
-
-| Pack | Questions |
-|---|---|
-| 🎲 Mix | 9,236 |
-| 🏡 Family | 7,370 |
-| 🌾 Desi Bulandshahr | 6,928 |
-| 🏏 Meerut Side | 6,019 |
-| 🌶️ Hot Takes | 5,207 |
-| 💸 Grown-ups | 3,398 |
+To add more questions, add answers to any pool in `questions.js`. Every new answer creates dozens of new questions.
 
 ## Install it as an app
 
@@ -94,4 +113,4 @@ Then open http://localhost:8000. When you host from your own computer, the QR co
 
 ## Project description (for your submission)
 
-> **Mindmela** is a desi party game about how well you know your people. Each round asks a Hinglish dilemma straight from Meerut and Bulandshahr, like "Sarkari naukri kam tankhwah, ya private moti tankhwah?" or "Har shaadi mein naraaz kaun: Phufa ji ya Jija ji?" Everyone secretly picks a side, then guesses how many friends picked the same. Guess exactly and you score. Then the reveal puts everyone's names on screen, and the arguing begins. A question generator builds over 9,000 questions from desi ingredients. Champion rounds bring back the room's last winning answer to face a new challenger, so every game plays differently. Friends join from any phone with a 4-letter code, with no accounts, and it installs like an app. Every screen stays in sync in real time, ending with awards like The Rebel and Twin Souls.
+> **Mindmela** is a desi party game about how well you know your people. Each round asks a Hinglish dilemma straight from Meerut and Bulandshahr, like "Sarkari naukri kam tankhwah, ya private moti tankhwah?" or "Har shaadi mein naraaz kaun: Phufa ji ya Jija ji?" Everyone secretly picks a side, then guesses how many friends picked the same. Guess exactly and you score. Then the reveal puts everyone's names on screen, and the arguing begins. Eleven sections, from Bollywood Masala and Cricket Crazy to Ajeeb Dilemmas, hold over 11,000 questions, and no two rounds in a row are alike. When someone reads the room perfectly, Laddoo the dancing mascot cheers them on. Every player carries a live tag like "🔥 On fire ×3" and ends the game with a personal one like Mind Reader or Lone Wolf. Friends join from any phone with a 4-letter code, with no accounts, and it installs like an app.

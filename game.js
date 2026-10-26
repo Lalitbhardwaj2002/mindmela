@@ -20,7 +20,7 @@
 'use strict';
 
 const CONFIG = {
-  peerPrefix: 'mindmela-v1-',
+  peerPrefix: 'mindmela-v2-',
   answerSeconds: 30,
   revealSeconds: 60, // the host usually moves on sooner; this keeps a stalled game going
   maxPlayers: 12,
@@ -29,13 +29,20 @@ const CONFIG = {
   connectTimeoutMs: 20000,
   reconnectForMs: 45000,
   retryEveryMs: 6000,
-  lengths: { quick: 5, standard: 10, long: 20, endless: 0 }, // 0 = keep going until the host ends it
+  lengths: {
+    quick: { rounds: 5, icon: '⚡', label: 'Quick' },
+    classic: { rounds: 10, icon: '🎯', label: 'Classic' },
+    long: { rounds: 20, icon: '🔥', label: 'Long' },
+    marathon: { rounds: 50, icon: '🏆', label: 'Marathon' },
+  },
 };
+const DEFAULT_LENGTH = 'classic';
 const POINTS = { exact: 3, close: 1 };
 const HANDWRITTEN_SHARE = 0.35; // how often a round uses a hand-written question while unused ones remain
-const CHAMPION_CHANCE = 0.5;    // how often the room's last pick comes back to face a challenger
-const MIX = { icon: '🎲', title: 'Mix', blurb: 'A bit of everything' };
-const PACK_ORDER = ['mix', 'desi', 'meerut', 'family', 'grownups', 'hottakes'];
+const RECENT_ROUNDS = 4;        // no question or answer repeats within this many rounds
+const RECENT_CATEGORIES = 2;    // and no generator category repeats within this many
+const MIX = { icon: '🎲', title: 'Mix', blurb: 'A bit of everything, from every section', color: '#ffcf5a' };
+const PACK_ORDER = ['mix', 'desi', 'meerut', 'filmy', 'cricket', 'school', 'pyaar', 'ajeeb', 'family', 'grownups', 'hottakes'];
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ'; // no I, L or O: easy to read aloud
 const COLORS = ['#ff8fa3', '#ffd166', '#7ae582', '#74b9ff', '#c39bff', '#ffa94d',
   '#5ee7d8', '#f78fd0', '#c0eb75', '#8fd3ff', '#ffc078', '#b6a6ff'];
@@ -57,6 +64,7 @@ const times = (n) => (n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`);
 const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
 const rand = (n) => Math.floor(Math.random() * n);
 const pick = (list) => list[rand(list.length)];
+const shortCount = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(n));
 function listNames(names) {
   if (names.length <= 1) return names.join('');
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
@@ -74,59 +82,62 @@ const questionCount = (key) => handwrittenIds(key).length
   + genCategories(key).reduce((sum, c) => sum + pairCount(GEN[c].items.length) * GEN[c].frames.length, 0);
 const pairKey = (cat, a, b) => `g:${cat}:${Math.min(a, b)}:${Math.max(a, b)}`;
 const option = (s) => { const at = s.indexOf(' '); return { e: s.slice(0, at), t: s.slice(at + 1) }; };
+const lengthInfo = (key) => CONFIG.lengths[key] || CONFIG.lengths[DEFAULT_LENGTH];
 
-// Hand-written ids look like "desi:4". Generated ids look like "g:khaana:3:17:2" (category, answer A,
-// answer B, frame); a trailing ":c" marks a champion round, where answer A won the room's last vote.
+// Hand-written ids look like "desi:4"; generated ones look like "g:khaana:3:17:2"
+// (category, answer A, answer B, frame). `tag` is the round label shown above the question.
 function getPrompt(id) {
   const parts = String(id).split(':');
   if (parts[0] === 'g') {
-    const [, cat, a, b, f, champ] = parts;
+    const [, cat, a, b, f] = parts;
     const g = GEN[cat];
     if (!g || !g.items[a] || !g.items[b] || !g.frames[f]) return null;
-    const frame = g.frames[f];
-    return { id, q: champ ? `🏆 Pichhla vijeta waapas! ${frame}` : frame, a: option(g.items[a]), b: option(g.items[b]), champ: !!champ };
+    return { id, q: g.frames[f], a: option(g.items[a]), b: option(g.items[b]), tag: g.label };
   }
-  const raw = PACKS[parts[0]] && PACKS[parts[0]].prompts[Number(parts[1])];
-  return raw ? { id, q: raw[0], a: option(raw[1]), b: option(raw[2]), champ: false } : null;
+  const pack = PACKS[parts[0]];
+  const raw = pack && pack.prompts[Number(parts[1])];
+  return raw ? { id, q: raw[0], a: option(raw[1]), b: option(raw[2]), tag: `${pack.icon} ${pack.title}` } : null;
 }
 
-// Picks the next question and records it so the room doesn't see it again. While hand-written
-// questions remain, some rounds use one; the rest pair two answers from one generator category.
-function nextPrompt(s) {
+// A question is "fresh" if none of the last few rounds asked the same thing or offered the same
+// answer, and (when strict) it doesn't come from a generator category used in the last few rounds.
+const categoryOf = (id) => (String(id).startsWith('g:') ? id.split(':')[1] : null);
+function isFresh(s, id, strict) {
+  const p = getPrompt(id);
+  const recent = s.recent || [];
+  if (recent.some((r) => r.q === p.q || r.texts.includes(p.a.t) || r.texts.includes(p.b.t))) return false;
+  const cat = categoryOf(id);
+  return !strict || !cat || !recent.slice(-RECENT_CATEGORIES).some((r) => r.cat === cat);
+}
+
+function remember(s, id, key = id) {
+  const p = getPrompt(id);
+  s.used.push(key);
+  s.recent = [...(s.recent || []), { cat: categoryOf(id), q: p.q, texts: [p.a.t, p.b.t] }].slice(-RECENT_ROUNDS);
+  return id;
+}
+
+// Picks the next question. While hand-written questions remain, some rounds use one; the rest pair
+// two answers from one generator category. Tries the strict freshness rules first, then relaxes them.
+function nextPrompt(s, retried = false) {
   const used = new Set(s.used);
-  const take = (id, key = id) => { s.used.push(key); return id; };
-
-  const champ = championPrompt(s, used);
-  if (champ) return take(champ.id, champ.key);
-
-  const fresh = handwrittenIds(s.pack).filter((id) => !used.has(id));
-  if (fresh.length && Math.random() < HANDWRITTEN_SHARE) return take(pick(fresh));
-
-  const cats = genCategories(s.pack);
-  for (let tries = 0; tries < 80; tries++) {
-    const cat = pick(cats);
-    const n = GEN[cat].items.length;
-    const a = rand(n);
-    const b = rand(n);
-    if (a === b || used.has(pairKey(cat, a, b))) continue;
-    return take(`g:${cat}:${a}:${b}:${rand(GEN[cat].frames.length)}`, pairKey(cat, a, b));
+  for (const strict of [true, false]) {
+    const fresh = handwrittenIds(s.pack).filter((id) => !used.has(id) && isFresh(s, id, strict));
+    if (fresh.length && Math.random() < HANDWRITTEN_SHARE) return remember(s, pick(fresh));
+    const cats = genCategories(s.pack);
+    for (let tries = 0; tries < 150; tries++) {
+      const cat = pick(cats);
+      const n = GEN[cat].items.length;
+      const a = rand(n);
+      const b = rand(n);
+      if (a === b || used.has(pairKey(cat, a, b))) continue;
+      const id = `g:${cat}:${a}:${b}:${rand(GEN[cat].frames.length)}`;
+      if (isFresh(s, id, strict)) return remember(s, id, pairKey(cat, a, b));
+    }
+    if (fresh.length) return remember(s, pick(fresh));
   }
-  s.used = []; // this room has seen nearly everything: start over
-  return nextPrompt(s);
-}
-
-// Uses the room's last vote: if it was a generated question with a clear winner, that answer
-// often comes back, under the same question, against a new challenger from the same category.
-function championPrompt(s, used) {
-  const L = s.last;
-  if (!L || !String(L.prompt).startsWith('g:') || L.counts.a === L.counts.b || Math.random() >= CHAMPION_CHANCE) return null;
-  const [, cat, a, b, frame] = L.prompt.split(':');
-  if (!genCategories(s.pack).includes(cat)) return null;
-  const winner = Number(L.counts.a > L.counts.b ? a : b);
-  const challengers = GEN[cat].items.map((_, i) => i).filter((i) => i !== winner && !used.has(pairKey(cat, winner, i)));
-  if (!challengers.length) return null;
-  const rival = pick(challengers);
-  return { id: `g:${cat}:${winner}:${rival}:${frame}:c`, key: pairKey(cat, winner, rival) };
+  if (!retried) { s.used = []; return nextPrompt(s, true); } // this room has seen nearly everything: start over
+  return remember(s, pick(handwrittenIds(s.pack)));
 }
 
 // Who am I? The id lives in sessionStorage, so it survives a refresh but each tab is its own player.
@@ -190,13 +201,13 @@ function openRoom(code, saved = null, attempt = 0) {
 
 function freshState(code) {
   return {
-    code, phase: 'lobby', hostId: me.id, pack: 'mix', length: 'standard',
-    round: 0, totalRounds: 0, used: [], prompt: null, final: false,
-    endsAt: 0, last: null, players: [], pairs: {}, winners: [], awards: [],
+    code, phase: 'lobby', hostId: me.id, pack: 'mix', length: DEFAULT_LENGTH,
+    round: 0, totalRounds: 0, used: [], recent: [], prompt: null, final: false,
+    endsAt: 0, last: null, players: [], pairs: {}, winners: [], titles: [],
   };
 }
 
-const blankStats = () => ({ answered: 0, exact: 0, minority: 0, majority: 0 });
+const blankStats = () => ({ answered: 0, exact: 0, close: 0, miss: 0, minority: 0, majority: 0, skipped: 0, streak: 0, bestStreak: 0 });
 
 function addPlayer(id, rawName) {
   const s = host.state;
@@ -209,6 +220,7 @@ function addPlayer(id, rawName) {
     name: uniqueName(cleanName(rawName) || 'Guest', id),
     color: COLORS.find((c) => !used.has(c)) || COLORS[s.players.length % COLORS.length],
     score: 0,
+    tag: '',
     connected: true,
     stats: blankStats(),
   };
@@ -300,13 +312,11 @@ function handleAction(pid, msg) {
     case 'next':
       if (fromHost && s.phase === 'reveal') advance();
       return;
-    case 'finish':
-      if (fromHost && s.phase === 'reveal') finishGame();
-      return;
     case 'again':
       if (fromHost && s.phase === 'over') {
         s.players = s.players.filter((p) => p.connected);
-        Object.assign(s, { phase: 'lobby', round: 0, last: null, winners: [], awards: [] });
+        s.players.forEach((p) => { p.tag = ''; });
+        Object.assign(s, { phase: 'lobby', round: 0, last: null, winners: [], titles: [] });
         hostChanged();
       }
       return;
@@ -319,9 +329,9 @@ function handleAction(pid, msg) {
 
 function startGame() {
   const s = host.state;
-  s.players.forEach((p) => { p.score = 0; p.stats = blankStats(); });
-  Object.assign(s, { pairs: {}, round: 0, last: null, winners: [], awards: [], final: false });
-  s.totalRounds = has(CONFIG.lengths, s.length) ? CONFIG.lengths[s.length] : CONFIG.lengths.standard;
+  s.players.forEach((p) => { p.score = 0; p.tag = ''; p.stats = blankStats(); });
+  Object.assign(s, { pairs: {}, round: 0, last: null, winners: [], titles: [], final: false, recent: [] });
+  s.totalRounds = lengthInfo(s.length).rounds;
   startRound();
 }
 
@@ -363,21 +373,29 @@ function endRound() {
 
   const points = {};
   for (const p of s.players) {
-    points[p.id] = 0;
+    const st = p.stats;
     const a = answers[p.id];
-    if (!a) continue;
+    points[p.id] = 0;
+    if (!a) {
+      if (p.connected) st.skipped += 1;
+      st.streak = 0;
+      continue;
+    }
     const same = counts[a.side];
-    p.stats.answered += 1;
-    if (same < total - same) p.stats.minority += 1;
-    else if (same > total - same) p.stats.majority += 1;
-    if (!a.guess) continue;
+    st.answered += 1;
+    if (same < total - same) st.minority += 1;
+    else if (same > total - same) st.majority += 1;
+    if (!a.guess) { st.streak = 0; continue; }
     const off = Math.abs(a.guess - same);
-    if (off === 0) p.stats.exact += 1;
-    points[p.id] = off === 0 ? POINTS.exact : off === 1 ? POINTS.close : 0;
+    const kind = off === 0 ? 'exact' : off === 1 ? 'close' : 'miss';
+    st[kind] += 1;
+    st.streak = kind === 'exact' ? st.streak + 1 : 0;
+    st.bestStreak = Math.max(st.bestStreak, st.streak);
+    points[p.id] = kind === 'exact' ? POINTS.exact : kind === 'close' ? POINTS.close : 0;
     p.score += points[p.id];
   }
 
-  // Track how often each pair of players agrees, for the end-of-game awards.
+  // Track how often each pair of players agrees, for the end-of-game tags.
   const ids = Object.keys(answers);
   for (let i = 0; i < ids.length; i++) {
     for (let j = i + 1; j < ids.length; j++) {
@@ -389,11 +407,33 @@ function endRound() {
   }
 
   s.last = { round: s.round, prompt: s.prompt, answers, counts, points };
-  s.final = s.totalRounds > 0 && s.round >= s.totalRounds;
+  updateLiveTags(s);
+  s.final = s.round >= s.totalRounds;
   s.phase = 'reveal';
   s.endsAt = Date.now() + CONFIG.revealSeconds * 1000;
   host.timer = setTimeout(advance, CONFIG.revealSeconds * 1000);
   hostChanged();
+}
+
+// The tag next to each name during the game, based on the scores and the round just played.
+function updateLiveTags(s) {
+  const { answers, counts, points } = s.last;
+  const total = counts.a + counts.b;
+  const top = Math.max(...s.players.map((p) => p.score));
+  const leaders = s.players.filter((p) => p.score === top);
+  for (const p of s.players) {
+    const a = answers[p.id];
+    const same = a ? counts[a.side] : 0;
+    if (top > 0 && leaders.length === 1 && leaders[0] === p) p.tag = '👑 Leader';
+    else if (p.stats.streak >= 2) p.tag = `🔥 On fire ×${p.stats.streak}`;
+    else if (points[p.id] === POINTS.exact) p.tag = '🎯 Bullseye';
+    else if (a && same === 1 && total >= 3) p.tag = '🦄 Lone wolf';
+    else if (points[p.id] === POINTS.close) p.tag = '🤏 So close';
+    else if (!a) p.tag = '😴 Snoozed';
+    else if (same * 2 === total) p.tag = '⚖️ Split vote';
+    else if (same * 2 > total) p.tag = '🐑 With the crowd';
+    else p.tag = '🌶️ Spicy pick';
+  }
 }
 
 function advance() {
@@ -408,37 +448,72 @@ function finishGame() {
   clearTimeout(host.timer);
   const top = Math.max(...s.players.map((p) => p.score));
   s.winners = s.players.filter((p) => p.score === top).map((p) => p.id);
-  s.awards = computeAwards(s);
+  s.titles = computeTitles(s);
   s.phase = 'over';
   hostChanged();
 }
 
-function computeAwards(s) {
-  const played = s.players.filter((p) => p.stats.answered > 0);
-  const awards = [];
-  const leaders = (key) => {
-    const max = Math.max(0, ...played.map((p) => p.stats[key]));
-    const ids = played.filter((p) => p.stats[key] === max).map((p) => p.id);
-    // An award everyone shares isn't much of an award.
-    return max > 0 && ids.length <= Math.max(2, Math.floor(played.length / 2)) ? { max, ids } : null;
-  };
-  const reader = leaders('exact');
-  if (reader) awards.push({ icon: '🎯', title: 'Mind Reader', ids: reader.ids, note: `Guessed the room exactly ${times(reader.max)}` });
-  const rebel = leaders('minority');
-  if (rebel) awards.push({ icon: '🦄', title: 'The Rebel', ids: rebel.ids, note: `Went against the crowd ${times(rebel.max)}` });
-  const sheep = leaders('majority');
-  if (sheep) awards.push({ icon: '🐑', title: 'Crowd Pleaser', ids: sheep.ids, note: `Sided with the majority ${times(sheep.max)}` });
+// At the end, every player gets a personal tag. Rules are tried in order; each goes to the
+// untagged player with the highest number for it, and anyone left over gets a friendly fallback.
+const TITLE_RULES = [
+  { icon: '🎯', title: 'Mind Reader', stat: 'exact', note: (n) => `Read the room perfectly ${times(n)}` },
+  { icon: '🔥', title: 'Hot Streak', stat: 'bestStreak', min: 2, note: (n) => `${n} perfect guesses in a row` },
+  { icon: '🦄', title: 'Lone Wolf', stat: 'minority', note: (n) => `Went against the crowd ${times(n)}` },
+  { pair: 'twin' },
+  { pair: 'opposite' },
+  { icon: '🐑', title: 'Crowd Favourite', stat: 'majority', note: (n) => `Sided with the crowd ${times(n)}` },
+  { icon: '🤏', title: 'Almost There', stat: 'close', note: (n) => `Missed by just one ${times(n)}` },
+  { icon: '🎲', title: 'Wild Guesser', stat: 'miss', note: (n) => `Made ${n} bold guesses that missed` },
+  { icon: '🐢', title: 'Fashionably Late', stat: 'skipped', note: (n) => `Let the timer win ${times(n)}` },
+];
+const FALLBACK_TITLES = [
+  { icon: '🌟', title: 'Steady Star', note: 'Kept it cool all game' },
+  { icon: '😄', title: 'Good Vibes', note: 'Here for the fun, and it showed' },
+  { icon: '🍿', title: 'Entertainer', note: 'Made every round more fun' },
+  { icon: '🧘', title: 'Zen Master', note: 'Never rattled, not once' },
+  { icon: '🎉', title: 'Party Starter', note: 'Brought the energy' },
+  { icon: '🦚', title: 'Showstopper', note: 'All eyes on this one' },
+  { icon: '🧠', title: 'Deep Thinker', note: 'Every pick had a reason' },
+  { icon: '🕵️', title: 'Undercover', note: 'Nobody could read this one' },
+  { icon: '🌈', title: 'Free Spirit', note: 'Picked from the heart' },
+  { icon: '🍵', title: 'Chai Philosopher', note: 'Had a theory for everything' },
+  { icon: '🎭', title: 'Drama King/Queen', note: 'Every reveal was a show' },
+  { icon: '🚀', title: 'Rising Star', note: 'One to watch next game' },
+];
 
+function computeTitles(s) {
+  const titles = {};
+  const nameOf = (id) => (s.players.find((p) => p.id === id) || {}).name || 'someone';
   const present = new Set(s.players.map((p) => p.id));
   const pairs = Object.entries(s.pairs).filter(([key, pr]) => pr.total >= 3 && key.split('|').every((id) => present.has(id)));
-  if (pairs.length) {
-    const rate = ([, pr]) => pr.same / pr.total;
-    const twin = pairs.reduce((best, p) => (rate(p) > rate(best) ? p : best));
-    if (rate(twin) >= 0.6) awards.push({ icon: '💞', title: 'Twin Souls', ids: twin[0].split('|'), note: `Agreed on ${twin[1].same} of ${twin[1].total} questions` });
-    const opposite = pairs.reduce((worst, p) => (rate(p) < rate(worst) ? p : worst));
-    if (rate(opposite) <= 0.4 && opposite !== twin) awards.push({ icon: '⚡', title: 'Total Opposites', ids: opposite[0].split('|'), note: `Agreed on only ${opposite[1].same} of ${opposite[1].total}` });
+  const rate = ([, pr]) => pr.same / pr.total;
+
+  for (const rule of TITLE_RULES) {
+    if (rule.pair && pairs.length) {
+      const best = rule.pair === 'twin'
+        ? pairs.reduce((x, y) => (rate(y) > rate(x) ? y : x))
+        : pairs.reduce((x, y) => (rate(y) < rate(x) ? y : x));
+      const ok = rule.pair === 'twin' ? rate(best) >= 0.7 : rate(best) <= 0.3;
+      const [x, y] = best[0].split('|');
+      if (!ok) continue;
+      for (const [id, other] of [[x, y], [y, x]]) {
+        if (titles[id]) continue;
+        titles[id] = rule.pair === 'twin'
+          ? { icon: '💞', title: 'Twin Soul', note: `Thinks just like ${nameOf(other)}` }
+          : { icon: '⚡', title: 'Total Opposite', note: `Hardly ever agreed with ${nameOf(other)}` };
+      }
+      continue;
+    }
+    if (rule.pair) continue;
+    const candidates = s.players.filter((p) => !titles[p.id] && p.stats[rule.stat] >= (rule.min || 1));
+    if (!candidates.length) continue;
+    const winner = candidates.reduce((x, y) => (y.stats[rule.stat] > x.stats[rule.stat]
+      || (y.stats[rule.stat] === x.stats[rule.stat] && y.score > x.score) ? y : x));
+    titles[winner.id] = { icon: rule.icon, title: rule.title, note: rule.note(winner.stats[rule.stat]) };
   }
-  return awards;
+
+  let spare = 0;
+  return s.players.map((p) => ({ id: p.id, ...(titles[p.id] || FALLBACK_TITLES[spare++ % FALLBACK_TITLES.length]) }));
 }
 
 function resumeHostTimer() {
@@ -478,14 +553,14 @@ function snapshotFor(pid, now) {
     totalRounds: s.totalRounds,
     final: s.final,
     players: s.players.map((p) => ({
-      id: p.id, name: p.name, color: p.color, score: p.score, connected: p.connected,
+      id: p.id, name: p.name, color: p.color, score: p.score, tag: p.tag || '', connected: p.connected,
       done: s.phase === 'answer' && isDone(host.answers[p.id]),
     })),
     prompt: s.phase === 'answer' ? getPrompt(s.prompt) : null,
     timeLeft: timed ? Math.max(0, s.endsAt - now) : 0,
     last: s.last ? { ...s.last, prompt: getPrompt(s.last.prompt) } : null,
     winners: s.winners,
-    awards: s.awards,
+    titles: s.titles || [],
     myAnswer: s.phase === 'answer' ? (host.answers[pid] || null) : null,
   };
 }
@@ -672,7 +747,8 @@ function onPhaseChange(prev, st) {
   } else if (st.phase === 'reveal' && prev.phase === 'answer') {
     sfx.whoosh();
     const r = myResult(st);
-    setTimeout(() => (r.mood === 'exact' ? sfx.win() : r.mood === 'close' ? sfx.close() : sfx.miss()), 1500);
+    const cheered = roundWinners(st).length > 0;
+    setTimeout(() => (r.mood === 'exact' ? sfx.win() : cheered ? sfx.cheer() : r.mood === 'close' ? sfx.close() : sfx.miss()), 1500);
   } else if (st.phase === 'over') {
     sfx.fanfare();
     confetti();
@@ -720,8 +796,9 @@ const RULES_HTML = `
   </ol>`;
 
 const hostName = (v) => (v.players.find((p) => p.id === v.hostId) || {}).name || 'the host';
-const roundLabel = (v) => (v.totalRounds ? `Question ${v.round} of ${v.totalRounds}` : `Question ${v.round} · Endless`);
+const roundLabel = (v) => `Question ${v.round} of ${v.totalRounds}`;
 const chip = (p, extra = '', prefix = '') => `<span class="pchip ${p.id === me.id ? 'me' : ''} ${extra}" style="--c:${p.color}">${prefix}${esc(p.name)}</span>`;
+const roundWinners = (v) => (v.last ? v.players.filter((p) => (v.last.points[p.id] || 0) === POINTS.exact) : []);
 
 function lobbyHTML(v) {
   const share = navigator.share ? '<button class="btn" data-action="share">Share…</button>' : '';
@@ -743,7 +820,7 @@ function lobbyHTML(v) {
       <div id="start-area"></div>
     </section>
     <section class="card">
-      <h2>Questions</h2>
+      <h2>Pick a section</h2>
       <div id="settings"></div>
     </section>
     <section class="card">
@@ -757,20 +834,21 @@ function settingsHTML(v, amHost) {
     const info = packInfo(k);
     const on = v.pack === k;
     return `
-      <button class="pack ${on ? 'on' : ''}" ${amHost ? `data-action="pack" data-pack="${k}"` : 'disabled'} aria-pressed="${on}">
-        <span class="pack-icon">${info.icon}</span>
+      <button class="pack ${on ? 'on' : ''}" style="--pc:${info.color}" ${amHost ? `data-action="pack" data-pack="${k}"` : 'disabled'} aria-pressed="${on}">
+        <span class="pack-top"><span class="pack-icon">${info.icon}</span><span class="pack-count">${shortCount(questionCount(k))} Qs</span></span>
         <span class="pack-title">${esc(info.title)}</span>
         <span class="pack-blurb">${esc(info.blurb)}</span>
       </button>`;
   }).join('');
-  const lengths = Object.entries(CONFIG.lengths).map(([k, n]) =>
-    `<button class="seg ${v.length === k ? 'on' : ''}" ${amHost ? `data-action="length" data-length="${k}"` : 'disabled'}>${n ? `${n} questions` : '∞ Endless'}</button>`).join('');
+  const lengths = Object.entries(CONFIG.lengths).map(([k, l]) => `
+    <button class="seg ${v.length === k ? 'on' : ''}" ${amHost ? `data-action="length" data-length="${k}"` : 'disabled'} aria-pressed="${v.length === k}">
+      <span class="seg-icon">${l.icon}</span><b>${l.label}</b><small>${l.rounds} questions</small>
+    </button>`).join('');
   return `
     <div class="packs">${packs}</div>
-    <p class="muted small center pack-count">${questionCount(v.pack).toLocaleString('en-IN')} questions in this pack, mixed fresh every game</p>
     <p class="field-label">Game length</p>
     <div class="segs">${lengths}</div>
-    ${amHost ? '' : `<p class="muted small center" style="margin-top:12px">${esc(hostName(v))} picks the questions.</p>`}`;
+    ${amHost ? '' : `<p class="muted small center" style="margin-top:12px">${esc(hostName(v))} picks the section and length.</p>`}`;
 }
 
 function answerHTML(v) {
@@ -782,10 +860,10 @@ function answerHTML(v) {
   return `
     <section class="q-head">
       <p class="eyebrow">${roundLabel(v)}</p>
-      ${p.champ ? '<p class="champ-note">🏆 Champion round: your room’s last pick is back against a new challenger</p>' : ''}
       <div class="timer" id="timer"><div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div><span class="secs" data-countdown></span></div>
     </section>
     <section class="prompt">
+      <p class="round-tag">${esc(p.tag)}</p>
       <h1 class="prompt-q">${esc(p.q)}</h1>
       <div class="options">${option('a', p.a)}<span class="or">or</span>${option('b', p.b)}</div>
     </section>
@@ -799,6 +877,40 @@ function answerHTML(v) {
     <section class="card"><h2>Scores</h2><div class="scores" id="scores"></div></section>`;
 }
 
+// An original cheering mascot: a dancing laddoo in a party hat.
+const LADDOO_SVG = `
+  <svg class="laddoo" viewBox="0 0 140 150" role="img" aria-label="Laddoo the mascot cheering">
+    <g class="burst">
+      <rect x="16" y="22" width="6" height="11" rx="2" fill="#ff5e7e" transform="rotate(-25 19 27)"/>
+      <rect x="116" y="18" width="6" height="11" rx="2" fill="#2fd9c2" transform="rotate(25 119 23)"/>
+      <rect x="34" y="6" width="5" height="9" rx="2" fill="#7ae582"/>
+      <rect x="100" y="4" width="5" height="9" rx="2" fill="#ffcf5a"/>
+      <circle cx="10" cy="56" r="3.5" fill="#ffcf5a"/>
+      <circle cx="130" cy="58" r="3.5" fill="#c39bff"/>
+    </g>
+    <g class="arm arm-l"><path d="M40 96 Q20 80 22 56" fill="none" stroke="#d97300" stroke-width="9" stroke-linecap="round"/><circle cx="22" cy="53" r="8" fill="#ffb347"/></g>
+    <g class="arm arm-r"><path d="M100 96 Q120 80 118 56" fill="none" stroke="#d97300" stroke-width="9" stroke-linecap="round"/><circle cx="118" cy="53" r="8" fill="#ffb347"/></g>
+    <ellipse cx="54" cy="141" rx="11" ry="6" fill="#b85a00"/>
+    <ellipse cx="86" cy="141" rx="11" ry="6" fill="#b85a00"/>
+    <circle cx="70" cy="98" r="40" fill="#ffa62b"/>
+    <g fill="#e07b00" opacity=".55">
+      <circle cx="50" cy="72" r="3"/><circle cx="66" cy="66" r="2.5"/><circle cx="86" cy="70" r="3"/><circle cx="98" cy="86" r="2.5"/>
+      <circle cx="42" cy="90" r="2.5"/><circle cx="100" cy="108" r="3"/><circle cx="56" cy="124" r="2.5"/><circle cx="84" cy="126" r="3"/>
+      <circle cx="70" cy="134" r="2"/><circle cx="40" cy="112" r="2.5"/>
+    </g>
+    <path d="M52 92 q6 -8 12 0" fill="none" stroke="#3b1d00" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M76 92 q6 -8 12 0" fill="none" stroke="#3b1d00" stroke-width="3.5" stroke-linecap="round"/>
+    <ellipse cx="48" cy="104" rx="6" ry="4" fill="#ff5e7e" opacity=".5"/>
+    <ellipse cx="92" cy="104" rx="6" ry="4" fill="#ff5e7e" opacity=".5"/>
+    <path d="M58 104 q12 20 24 0 z" fill="#7a1f00"/>
+    <path d="M64 111 q6 7 12 0 q-6 -3 -12 0 z" fill="#ff7a8a"/>
+    <g class="hat">
+      <path d="M70 26 L55 62 L85 62 Z" fill="#ff5e7e"/>
+      <path d="M63 44 L77 44 L80 52 L60 52 Z" fill="#ffcf5a"/>
+      <circle cx="70" cy="25" r="5.5" fill="#2fd9c2"/>
+    </g>
+  </svg>`;
+
 function revealHTML(v, amHost) {
   const L = v.last;
   const p = L.prompt;
@@ -807,15 +919,22 @@ function revealHTML(v, amHost) {
   const names = (side) => v.players.filter((pl) => L.answers[pl.id] && L.answers[pl.id].side === side).map((pl) => chip(pl)).join('')
     || '<span class="muted small">nobody</span>';
   const r = myResult(v);
-  const label = v.final ? 'See final results' : 'Next question';
-  const endless = v.totalRounds ? '' : '<button class="btn link" data-action="finish">End the game and see awards</button>';
+  const winners = roundWinners(v);
+  const cheer = winners.length ? `
+    <section class="cheer">
+      ${LADDOO_SVG}
+      <div class="bubble">
+        <b>Cheers, ${esc(listNames(winners.map((w) => (w.id === me.id ? 'you' : w.name))))}! 🎉</b>
+        <span>Read the room perfectly: +${POINTS.exact} points</span>
+      </div>
+    </section>` : '';
   const next = amHost
-    ? `<button class="btn primary big" data-action="next">${label}</button>${endless}
+    ? `<button class="btn primary big" data-action="next">${v.final ? 'See final results' : 'Next question'}</button>
        <p class="muted small">Talk it out! Moving on by itself in <span data-countdown></span>s</p>`
     : `<p class="muted">Talk it out! ${esc(hostName(v))} will move on soon<span class="dots"></span></p>`;
   return `
     <section class="q-head"><p class="eyebrow">${roundLabel(v)} · results</p></section>
-    <section class="prompt small"><h1 class="prompt-q">${esc(p.q)}</h1></section>
+    <section class="prompt small"><p class="round-tag">${esc(p.tag)}</p><h1 class="prompt-q">${esc(p.q)}</h1></section>
     <section class="split">
       <div class="split-labels"><span class="lab-a">${esc(p.a.e)} ${esc(p.a.t)}</span><span class="lab-b">${esc(p.b.e)} ${esc(p.b.t)}</span></div>
       <div class="split-row">
@@ -826,6 +945,7 @@ function revealHTML(v, amHost) {
       <div class="split-names"><div class="names names-a">${names('a')}</div><div class="names names-b">${names('b')}</div></div>
       <p class="room-quip">${esc(roomQuip(v))}</p>
     </section>
+    ${cheer}
     <section class="result ${r.mood}"><h2>${esc(r.title)}</h2><p>${esc(r.sub)}</p></section>
     <div class="next-area">${next}</div>
     <section class="card"><h2>Scores</h2><div class="scores" id="scores"></div></section>`;
@@ -836,17 +956,20 @@ function overHTML(v, amHost) {
   let title = 'Game over!';
   if (winners.length === 1) title = winners[0].id === me.id ? 'You read the room best!' : `${winners[0].name} read the room best!`;
   else if (winners.length > 1) title = `It’s a tie: ${listNames(winners.map((p) => (p.id === me.id ? 'you' : p.name)))}!`;
-  const awards = v.awards.map((a, i) => {
-    const who = a.ids.map((id) => v.players.find((p) => p.id === id)).filter(Boolean);
-    if (!who.length) return '';
+  const ranked = [...v.players].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  const medal = (i) => ['🥇', '🥈', '🥉'][i] || `#${i + 1}`;
+  const cards = ranked.map((p, i) => {
+    const t = v.titles.find((x) => x.id === p.id) || { icon: '🌟', title: 'Player', note: '' };
     return `
-      <div class="award" style="--i:${i}">
-        <span class="award-icon">${a.icon}</span>
-        <div>
-          <p class="award-title">${esc(a.title)}</p>
-          <div class="award-who">${who.map((p) => chip(p)).join('')}</div>
-          <p class="muted small">${esc(a.note)}</p>
+      <div class="tagcard" style="--c:${p.color};--i:${i}">
+        <span class="tc-rank">${medal(i)}</span>
+        <span class="tc-avatar">${esc(initial(p.name))}</span>
+        <div class="tc-body">
+          <p class="tc-name">${esc(p.name)}${p.id === me.id ? ' <em>you</em>' : ''}</p>
+          <p class="tc-tag">${t.icon} ${esc(t.title)}</p>
+          <p class="tc-note">${esc(t.note)}</p>
         </div>
+        <span class="tc-score">${p.score}<small>pts</small></span>
       </div>`;
   }).join('');
   const next = amHost
@@ -858,8 +981,10 @@ function overHTML(v, amHost) {
       <p class="eyebrow">Game over after ${v.round} questions</p>
       <h1>${esc(title)}</h1>
     </section>
-    ${awards ? `<section class="awards">${awards}</section>` : ''}
-    <section class="card"><h2>Final scores</h2><div class="scores" id="scores"></div></section>
+    <section class="tagcards">
+      <h2 class="section-title">Everyone’s tag</h2>
+      ${cards}
+    </section>
     <div class="next-area">${next}</div>`;
 }
 
@@ -868,9 +993,6 @@ function roomQuip(v) {
   const total = counts.a + counts.b;
   if (!total) return 'Nobody answered! 😴';
   if (total === 1) return 'A room of one. Bold. 😅';
-  if (prompt.champ && counts.a !== counts.b) {
-    return counts.a > counts.b ? `Still the champion: ${prompt.a.t}! 🏆` : `New champion: ${prompt.b.t}! 👑`;
-  }
   if (!counts.a || !counts.b) return 'Unanimous! The whole room agrees. 🤝';
   if (counts.a === counts.b) return 'A perfect split. Fight it out! ⚖️';
   const loneSide = counts.a === 1 ? 'a' : counts.b === 1 ? 'b' : null;
@@ -970,18 +1092,18 @@ function updateAnswerUI(v) {
 }
 
 function scoresHTML(v) {
-  const showGain = (v.phase === 'reveal' || v.phase === 'over') && v.last;
+  const showGain = v.phase === 'reveal' && v.last;
   const top = Math.max(1, ...v.players.map((p) => p.score));
   const rows = [...v.players].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
   return rows.map((p) => {
-    const gain = showGain && v.phase === 'reveal' ? (v.last.points[p.id] || 0) : 0;
+    const gain = showGain ? (v.last.points[p.id] || 0) : 0;
     const to = p.score / top;
     const from = (p.score - gain) / top;
-    const tags = (p.id === me.id ? ' <em>you</em>' : '') + (p.connected ? '' : ' <em>💤 away</em>');
+    const extra = (p.id === me.id ? ' <em>you</em>' : '') + (p.connected ? '' : ' <em>💤 away</em>');
     return `
       <div class="score-row ${p.connected ? '' : 'offline'}">
         <span class="dot" style="--c:${p.color}"></span>
-        <span class="score-name">${esc(p.name)}${tags}</span>
+        <span class="score-name"><span class="nm">${esc(p.name)}${extra}</span>${p.tag ? `<span class="ptag">${esc(p.tag)}</span>` : ''}</span>
         <span class="bar"><span class="bar-fill" style="--c:${p.color};--from:${from};--to:${to}"></span></span>
         <span class="score-num">${p.score}${gain ? `<small>+${gain}</small>` : ''}</span>
       </div>`;
@@ -1059,7 +1181,7 @@ function renderHome() {
       <div><b>🔮</b>Guess how many agree with you</div>
       <div><b>😱</b>See who picked what</div>
     </section>
-    <p class="muted small center">2–${CONFIG.maxPlayers} players · ages 8 to 80 · any phone · no sign-up</p>`;
+    <p class="muted small center">2–${CONFIG.maxPlayers} players · 11 sections · any phone · no sign-up</p>`;
 }
 
 function showBusy(message) {
@@ -1171,7 +1293,6 @@ const actions = {
   length: (btn) => act({ type: 'settings', length: btn.dataset.length }),
   start: () => act({ type: 'start' }),
   next: () => act({ type: 'next' }),
-  finish: () => act({ type: 'finish' }),
   again: () => act({ type: 'again' }),
   copy: copyInvite,
   share() {
@@ -1315,6 +1436,7 @@ const sfx = (() => {
     start() { tone(392, 0, 0.14); tone(587, 0.12, 0.22); },
     whoosh: () => tone(200, 0, 0.9, 'sine', 0.07, 900),
     win: () => [659, 784, 988, 1319].forEach((f, i) => tone(f, i * 0.08, 0.22)),
+    cheer: () => [523, 659, 784].forEach((f, i) => tone(f, i * 0.09, 0.18, 'triangle', 0.08)),
     close: () => { tone(587, 0, 0.15); tone(740, 0.12, 0.22); },
     miss: () => tone(330, 0, 0.45, 'sine', 0.08, 180),
     fanfare: () => [523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.12, 0.28)),
@@ -1324,7 +1446,7 @@ document.addEventListener('pointerdown', () => sfx.unlock(), { passive: true });
 
 // ---------- start ----------
 // A saved game from an older version may point at questions that no longer exist.
-const savedGameUsable = (saved) => !!(saved && saved.state && Array.isArray(saved.state.used))
+const savedGameUsable = (saved) => !!(saved && saved.state && Array.isArray(saved.state.used) && Array.isArray(saved.state.recent))
   && [saved.state.prompt, saved.state.last && saved.state.last.prompt].every((id) => !id || getPrompt(id));
 
 function boot() {

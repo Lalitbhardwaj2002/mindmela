@@ -5,7 +5,7 @@
  */
 'use strict';
 
-const CACHE = 'mindmela-v1';
+const CACHE = 'mindmela-v2';
 const SHELL = ['./', './index.html', './style.css', './game.js', './questions.js', './manifest.json',
   './icons/icon-192.png', './icons/icon-512.png'];
 const CDN = ['https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js',
