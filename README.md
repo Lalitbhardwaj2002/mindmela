@@ -1,10 +1,10 @@
-# 🔮 Chaupalbaazi — the desi party game
+# 🔮 Mindmela — the desi party game
 
 **Pick a side. Guess who's with you.**
 
-Chaupalbaazi is a free live party game for 2–12 players. The name mixes the village *chaupal*, where everyone gathers to argue, with *baazi*, a game. The game itself is in English; the questions are in desi Hinglish from Meerut and Bulandshahr. Friends join from any phone with a 4-letter room code or a QR scan, with no sign-up, and it installs on your phone like an app.
+Mindmela is a free live party game for 2–12 players. The name means a *mela* (fair) of minds: everyone brings an opinion, and the fun is guessing who thinks like you. The game itself is in English; the questions are in desi Hinglish from Meerut and Bulandshahr. Friends join from any phone with a 4-letter room code or a QR scan, with no sign-up, and it installs on your phone like an app.
 
-**Play now:** https://lalitbhardwaj2002.github.io/chaupalbaazi/
+**Play now:** https://lalitbhardwaj2002.github.io/mindmela/
 
 ## How to play
 
@@ -51,17 +51,17 @@ A room never sees the same pair of answers twice until it has used up the pack. 
 
 ## Getting found in search
 
-"Chaupalbaazi" is a made-up word that no other website uses, so once search engines list the site, searching for it should bring up this game. The page includes:
+"Mindmela" is a made-up word that no other website uses, so once search engines list the site, searching for it should bring up this game. The page includes:
 
 - A search title, description and keywords, and a share preview image (`og-image.png`)
 - Structured data that tells Google it's a free web game
-- A "What is Chaupalbaazi?" section on the home page that search engines can read
+- A "What is Mindmela?" section on the home page that search engines can read
 - `sitemap.xml`, plus a Bing/IndexNow key file (`fa5abe8ca70029f6cf7b3495dd5bdf01.txt`)
 
 **To get on Google faster (needs your Google account, about 5 minutes):**
 
 1. Go to https://search.google.com/search-console and click **Add property** → **URL prefix**.
-2. Enter `https://lalitbhardwaj2002.github.io/chaupalbaazi/`.
+2. Enter `https://lalitbhardwaj2002.github.io/mindmela/`.
 3. Choose the **HTML tag** method. Copy the `<meta name="google-site-verification" …>` tag and add it to `index.html` next to the other `<meta>` tags. Push the change, then click **Verify**.
 4. Open **Sitemaps** and submit `sitemap.xml`.
 5. Open **URL inspection**, paste the play link, and click **Request indexing**.
@@ -94,4 +94,4 @@ Then open http://localhost:8000. When you host from your own computer, the QR co
 
 ## Project description (for your submission)
 
-> **Chaupalbaazi** is a desi party game about how well you know your people. Each round asks a Hinglish dilemma straight from Meerut and Bulandshahr, like "Sarkari naukri kam tankhwah, ya private moti tankhwah?" or "Har shaadi mein naraaz kaun: Phufa ji ya Jija ji?" Everyone secretly picks a side, then guesses how many friends picked the same. Guess exactly and you score. Then the reveal puts everyone's names on screen, and the arguing begins. A question generator builds over 9,000 questions from desi ingredients. Champion rounds bring back the room's last winning answer to face a new challenger, so every game plays differently. Friends join from any phone with a 4-letter code, with no accounts, and it installs like an app. Every screen stays in sync in real time, ending with awards like The Rebel and Twin Souls.
+> **Mindmela** is a desi party game about how well you know your people. Each round asks a Hinglish dilemma straight from Meerut and Bulandshahr, like "Sarkari naukri kam tankhwah, ya private moti tankhwah?" or "Har shaadi mein naraaz kaun: Phufa ji ya Jija ji?" Everyone secretly picks a side, then guesses how many friends picked the same. Guess exactly and you score. Then the reveal puts everyone's names on screen, and the arguing begins. A question generator builds over 9,000 questions from desi ingredients. Champion rounds bring back the room's last winning answer to face a new challenger, so every game plays differently. Friends join from any phone with a 4-letter code, with no accounts, and it installs like an app. Every screen stays in sync in real time, ending with awards like The Rebel and Twin Souls.

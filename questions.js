@@ -1,4 +1,4 @@
-/* Questions for Chaupalbaazi — in Hinglish, with a west UP (Bulandshahr and Meerut) flavour.
+/* Questions for Mindmela — in Hinglish, with a west UP (Bulandshahr and Meerut) flavour.
  *
  * PACKS holds hand-written questions: [question, 'emoji Answer A', 'emoji Answer B'].
  * GEN holds the question generator's ingredients. Each category has question frames and a pool

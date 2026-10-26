@@ -1,4 +1,4 @@
-/* Chaupalbaazi — a real-time desi party game.
+/* Mindmela — a real-time desi party game.
  *
  * Each question has two answers. Everyone picks a side, then guesses how many
  * people (including themselves) picked the same. Exactly right scores 3,
@@ -20,7 +20,7 @@
 'use strict';
 
 const CONFIG = {
-  peerPrefix: 'chaupalbaazi-v1-',
+  peerPrefix: 'mindmela-v1-',
   answerSeconds: 30,
   revealSeconds: 60, // the host usually moves on sooner; this keeps a stalled game going
   maxPlayers: 12,
@@ -131,10 +131,10 @@ function championPrompt(s, used) {
 
 // Who am I? The id lives in sessionStorage, so it survives a refresh but each tab is its own player.
 const me = {
-  id: store.get('sessionStorage', 'cb-id') || makeId(),
-  name: store.get('localStorage', 'cb-name') || '',
+  id: store.get('sessionStorage', 'mm-id') || makeId(),
+  name: store.get('localStorage', 'mm-name') || '',
 };
-store.set('sessionStorage', 'cb-id', me.id);
+store.set('sessionStorage', 'mm-id', me.id);
 
 const ui = {
   screen: 'home',   // home | busy | error | game
@@ -166,7 +166,7 @@ function openRoom(code, saved = null, attempt = 0) {
     if (saved) host.state.players.forEach((p) => { if (p.id !== me.id) p.connected = false; });
     else addPlayer(me.id, me.name);
     net = { role: 'host', code };
-    store.set('sessionStorage', 'cb-role', 'host');
+    store.set('sessionStorage', 'mm-role', 'host');
     setRoomInUrl(code);
     resumeHostTimer();
     clearInterval(host.loop);
@@ -450,7 +450,7 @@ function resumeHostTimer() {
 }
 
 function hostChanged() {
-  store.set('sessionStorage', 'cb-host', JSON.stringify({ state: host.state, answers: host.answers }));
+  store.set('sessionStorage', 'mm-host', JSON.stringify({ state: host.state, answers: host.answers }));
   broadcast();
 }
 
@@ -510,7 +510,7 @@ function joinRoom(code) {
     reconnectingSince: 0, retryTimer: null, watch: null,
   };
   net = g;
-  store.set('sessionStorage', 'cb-role', 'guest');
+  store.set('sessionStorage', 'mm-role', 'guest');
   setRoomInUrl(code);
   makeGuestPeer(g);
   g.watch = setInterval(guestWatchdog, CONFIG.heartbeatMs);
@@ -625,8 +625,8 @@ function leaveGame() {
 }
 
 function forgetRoom() {
-  store.del('sessionStorage', 'cb-role');
-  store.del('sessionStorage', 'cb-host');
+  store.del('sessionStorage', 'mm-role');
+  store.del('sessionStorage', 'mm-host');
   ui.view = null;
   ui.stageKey = '';
 }
@@ -1048,7 +1048,7 @@ function renderHome() {
        </form>`;
   app.innerHTML = `
     <section class="hero">
-      <h1 class="title">Chaupal<em>baazi</em></h1>
+      <h1 class="title">Mind<em>mela</em></h1>
       <p class="tagline">The desi party game: pick a side, guess who’s with you.</p>
       <div class="demo" aria-hidden="true"><span class="da">🍬 Meerut ki gajak</span><span class="dor">or</span><span class="db">🍮 Khurja ki khurchan</span></div>
     </section>
@@ -1091,7 +1091,7 @@ function enterGame() {
 // When the host runs the game on their own computer, "localhost" in a link would point at each
 // friend's own phone. Rooms meet on the PeerJS server whichever copy of the game people open,
 // so local hosts send friends to the public site instead.
-const PUBLIC_URL = 'https://lalitbhardwaj2002.github.io/chaupalbaazi/';
+const PUBLIC_URL = 'https://lalitbhardwaj2002.github.io/mindmela/';
 const isLocalHost = () => location.protocol === 'file:'
   || ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname) || location.hostname.endsWith('.localhost');
 const joinBase = () => (isLocalHost() ? PUBLIC_URL : `${location.origin}${location.pathname}`);
@@ -1176,7 +1176,7 @@ const actions = {
   copy: copyInvite,
   share() {
     const code = ui.view.code;
-    navigator.share({ title: 'Chaupalbaazi', text: `Join my Chaupalbaazi game! Room code ${code}`, url: inviteUrl(code) }).catch(() => {});
+    navigator.share({ title: 'Mindmela', text: `Join my Mindmela game! Room code ${code}`, url: inviteUrl(code) }).catch(() => {});
   },
   async install() {
     if (!installPrompt) return;
@@ -1208,7 +1208,7 @@ document.addEventListener('submit', (e) => {
   const name = cleanName(nameInput && nameInput.value);
   if (!name) { flagInvalid('name-field', nameInput); return; }
   me.name = name;
-  store.set('localStorage', 'cb-name', name);
+  store.set('localStorage', 'mm-name', name);
   sfx.unlock();
   if (form.dataset.form === 'create') {
     openRoom(randomCode());
@@ -1284,7 +1284,7 @@ function releaseWakeLock() { if (wakeLock) wakeLock.release().catch(() => {}); w
 // ---------- sound (synthesised, no audio files) ----------
 const sfx = (() => {
   let ctx = null;
-  let muted = store.get('localStorage', 'cb-muted') === '1';
+  let muted = store.get('localStorage', 'mm-muted') === '1';
   const ready = () => ctx && !muted;
   function tone(freq, start, dur, type = 'triangle', vol = 0.12, slideTo = 0) {
     if (!ready()) return;
@@ -1309,7 +1309,7 @@ const sfx = (() => {
         if (ctx && ctx.state === 'suspended') ctx.resume();
       } catch { /* no audio */ }
     },
-    toggle() { muted = !muted; store.set('localStorage', 'cb-muted', muted ? '1' : '0'); return muted; },
+    toggle() { muted = !muted; store.set('localStorage', 'mm-muted', muted ? '1' : '0'); return muted; },
     tick: () => tone(1250, 0, 0.05, 'square', 0.035),
     pick: () => tone(620, 0, 0.08),
     start() { tone(392, 0, 0.14); tone(587, 0.12, 0.22); },
@@ -1334,10 +1334,10 @@ function boot() {
     return;
   }
   const code = normalizeCode(new URLSearchParams(location.search).get('room'));
-  const role = store.get('sessionStorage', 'cb-role');
+  const role = store.get('sessionStorage', 'mm-role');
   if (code && role === 'host') {
     let saved = null;
-    try { saved = JSON.parse(store.get('sessionStorage', 'cb-host') || 'null'); } catch { /* corrupt: start fresh */ }
+    try { saved = JSON.parse(store.get('sessionStorage', 'mm-host') || 'null'); } catch { /* corrupt: start fresh */ }
     if (savedGameUsable(saved) && saved.state.code === code) { openRoom(code, saved); return; }
   }
   if (code && role === 'guest' && me.name) { joinRoom(code); return; }
