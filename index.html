@@ -3,40 +3,96 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Read the Room</title>
-  <meta name="description" content="Desi party game: side chuno, andaaza lagao kaun tumhare saath hai. 2–12 khiladi, koi bhi phone, sign-up nahi.">
+  <title>Chaupalbaazi – Free Desi Party Game for Friends &amp; Family</title>
+  <meta name="description" content="Chaupalbaazi is a free desi party game. Pick a side on funny Hinglish questions from Meerut and Bulandshahr, guess who's with you, and play live with 2–12 friends on any phone.">
+  <meta name="keywords" content="Chaupalbaazi, desi party game, Hinglish game, online party game India, would you rather Hindi, Meerut, Bulandshahr, multiplayer phone game">
+  <meta name="author" content="Lalit Bhardwaj">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://lalitbhardwaj2002.github.io/chaupalbaazi/">
   <meta name="theme-color" content="#12091c">
-  <meta property="og:title" content="Read the Room — desi party game">
-  <meta property="og:description" content="Side chuno. Andaaza lagao kaun tumhare saath hai. Room code se kisi bhi phone se judo.">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Chaupalbaazi">
+  <meta property="og:title" content="Chaupalbaazi – the desi party game">
+  <meta property="og:description" content="Pick a side. Guess who's with you. Free, live, 2–12 players on any phone — no sign-up.">
+  <meta property="og:url" content="https://lalitbhardwaj2002.github.io/chaupalbaazi/">
+  <meta property="og:image" content="https://lalitbhardwaj2002.github.io/chaupalbaazi/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="en_IN">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Chaupalbaazi – the desi party game">
+  <meta name="twitter:description" content="Pick a side. Guess who's with you. Free, live, 2–12 players on any phone.">
+  <meta name="twitter:image" content="https://lalitbhardwaj2002.github.io/chaupalbaazi/og-image.png">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Chaupalbaazi",
+    "alternateName": ["Chaupal Baazi", "Chaupalbazi"],
+    "url": "https://lalitbhardwaj2002.github.io/chaupalbaazi/",
+    "description": "A free desi party game. Pick a side on funny Hinglish questions, guess how many friends picked the same, and play live with 2–12 players on any phone.",
+    "applicationCategory": "GameApplication",
+    "genre": "Party game",
+    "operatingSystem": "Any",
+    "browserRequirements": "Requires a modern web browser",
+    "inLanguage": ["en-IN", "hi-Latn"],
+    "image": "https://lalitbhardwaj2002.github.io/chaupalbaazi/og-image.png",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
+    "author": { "@type": "Person", "name": "Lalit Bhardwaj" }
+  }
+  </script>
+
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Read the Room">
+  <meta name="apple-mobile-web-app-title" content="Chaupalbaazi">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <main id="app" class="app" aria-live="polite"></main>
+<body data-screen="home">
+  <main id="app" class="app" aria-live="polite">
+    <section class="hero">
+      <h1 class="title">Chaupal<em>baazi</em></h1>
+      <p class="tagline">The desi party game: pick a side, guess who’s with you.</p>
+    </section>
+  </main>
+
+  <footer class="about">
+    <h2>What is Chaupalbaazi?</h2>
+    <p>Chaupalbaazi is a free online desi party game for 2–12 players, inspired by the village <em>chaupal</em> where everyone gathers to argue about everything. Each round asks a funny Hinglish question — <em>Sarkari naukri ya private?</em> <em>Meerut ki gajak ya Khurja ki khurchan?</em> — and you guess how many of your friends picked the same answer as you.</p>
+    <h2>How to play</h2>
+    <ol>
+      <li>One person creates a room and shares the 4-letter code or QR code.</li>
+      <li>Everyone joins from their own phone or laptop. No sign-up, no download.</li>
+      <li>Pick your side, then guess how many people picked the same. Exactly right scores 3 points; off by one scores 1.</li>
+      <li>See who picked what, argue about it, and win awards like The Rebel and Twin Souls.</li>
+    </ol>
+    <h2>Thousands of desi questions</h2>
+    <p>Question packs include Desi Bulandshahr, Meerut Side, Family, Grown-ups and Hot Takes, with over 9,000 questions about food, weddings, relatives, jobs, villages and more. Play a quick game or go endless. Chaupalbaazi works in any browser and can be installed on your phone like an app.</p>
+    <p class="made">Made with ❤️ in western UP · <a href="https://github.com/Lalitbhardwaj2002/chaupalbaazi">Source code</a></p>
+  </footer>
 
   <div id="banner" class="banner" role="status" hidden></div>
   <div id="toast" class="toast" role="status" hidden></div>
   <div id="confetti" class="confetti" aria-hidden="true"></div>
 
   <dialog id="help" class="help">
-    <h2>Kaise khelein</h2>
+    <h2>How to play</h2>
     <ol class="rules">
-      <li><b>Ek sawaal aayega, do jawaab ke saath.</b> Apna jawaab chuno.</li>
-      <li><b>Andaaza lagao kitne log tumhare jaisa chunenge</b> (khud ko bhi gino).</li>
-      <li><b>Ekdum sahi andaaza = 3 number.</b> Ek se chooke = 1 number.</li>
-      <li><b>Phir sabko dikhega kisne kya chuna.</b> Ab ho jaaye behes!</li>
+      <li><b>A desi question pops up with two answers.</b> Pick yours.</li>
+      <li><b>Guess how many people picked the same as you</b> (count yourself).</li>
+      <li><b>Exactly right scores 3 points.</b> Off by one scores 1.</li>
+      <li><b>Then everyone sees who picked what.</b> Let the arguments begin.</li>
     </ol>
-    <p class="muted small">Aakhir mein sabse zyada number waala jeetega. Saath mein inaam bhi: <b>Akela Sher</b>, <b>Dil Se Jude</b>, <b>Ulti Ganga</b>…</p>
-    <form method="dialog"><button class="btn primary">Samajh gaya</button></form>
+    <p class="muted small">Most points at the end wins, plus awards like <b>The Rebel</b> and <b>Twin Souls</b>. In an endless game, the host decides when to stop.</p>
+    <form method="dialog"><button class="btn primary">Got it</button></form>
   </dialog>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>

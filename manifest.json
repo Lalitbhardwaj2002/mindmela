@@ -1,7 +1,7 @@
 {
-  "name": "Read the Room — desi party game",
-  "short_name": "Read the Room",
-  "description": "Side chuno. Andaaza lagao kaun tumhare saath hai. 2–12 khiladi, koi bhi phone, sign-up nahi.",
+  "name": "Chaupalbaazi — the desi party game",
+  "short_name": "Chaupalbaazi",
+  "description": "Pick a side on funny Hinglish questions and guess who's with you. 2–12 players on any phone, no sign-up.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

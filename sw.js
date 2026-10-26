@@ -1,11 +1,11 @@
-/* Service worker: lets Read the Room install as an app and open instantly.
+/* Service worker: lets Chaupalbaazi install as an app and open instantly.
  * Game files are fetched from the network first, so players always get the latest version,
  * with the saved copy as a fallback. The CDN libraries and fonts never change at a given URL,
  * so they're served from the saved copy once fetched.
  */
 'use strict';
 
-const CACHE = 'rtr-app-v1';
+const CACHE = 'chaupalbaazi-v1';
 const SHELL = ['./', './index.html', './style.css', './game.js', './questions.js', './manifest.json',
   './icons/icon-192.png', './icons/icon-512.png'];
 const CDN = ['https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js',
